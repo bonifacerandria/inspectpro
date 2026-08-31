@@ -1,0 +1,59 @@
+# À placer dans /etc/nginx/sites-available/inspection-levage
+# puis activer avec :
+#   sudo ln -s /etc/nginx/sites-available/inspection-levage /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Remplace "votre-domaine.mg" par ton vrai nom de domaine (toutes occurrences).
+
+server {
+    listen 80;
+    server_name votre-domaine.mg;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name votre-domaine.mg;
+
+    # Adapte ces deux chemins à l'emplacement réel de ton certificat déjà
+    # en place (ex: /etc/letsencrypt/live/votre-domaine.mg/ si certbot).
+    ssl_certificate     /etc/ssl/certs/votre-domaine.mg/fullchain.pem;
+    ssl_certificate_key /etc/ssl/private/votre-domaine.mg/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Dossier où est déployé le build React (npm run build -> dist/)
+    root /var/www/inspection-levage/web;
+    index index.html;
+
+    client_max_body_size 25M;  # upload de photos depuis l'app d'inspection
+
+    access_log /var/log/nginx/inspection-levage.access.log;
+    error_log  /var/log/nginx/inspection-levage.error.log;
+
+    # --- API Laravel : proxy vers le conteneur backend, exposé sur localhost:8080 ---
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # --- Fichiers stockés par Laravel (storage:link -> photos, PDF de rapport...) ---
+    location /storage/ {
+        proxy_pass http://127.0.0.1:8080/storage/;
+        proxy_set_header Host $host;
+    }
+
+    # --- Frontend React (SPA) ---
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
