@@ -1,28 +1,13 @@
-version: "3.8"
-
-# ---------------------------------------------------------------
-# Version SANS conteneur "edge" : le nginx du VM (natif, dans
-# /etc/nginx/sites-available) fait le SSL et sert le frontend. Docker ne
-# gère que le backend + la base, exposés uniquement sur 127.0.0.1 — jamais
-# directement sur Internet.
-#
-# Arborescence attendue sur le VM (chemins relatifs à ce fichier) :
-#   ./laravel-setup/    <- le projet backend (Phase 1)
-#   ./.env               <- variables pour docker-compose lui-même (POSTGRES_*)
-#   ./backend.env        <- variables pour Laravel (copié depuis
-#                            laravel-setup/.env.example, valeurs de prod)
-#
-# Le frontend (web-app/) n'est PAS dans ce compose : il est buildé une fois
-# (npm run build) et son dossier dist/ est servi directement par le nginx
-# du VM — voir DEPLOIEMENT.md étape 4.
-# ---------------------------------------------------------------
+# Nom de projet explicite -> volumes/réseaux préfixés "inspectpro_..."
+# aucune collision possible avec taskflow-*, moodle-*, epay-php déjà en place.
+name: inspectpro
 
 services:
   app:
     build:
       context: ./laravel-setup
       dockerfile: docker/php/Dockerfile
-    container_name: inspection-levage-app
+    container_name: inspectpro-app
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -30,26 +15,25 @@ services:
       - storage_data:/var/www/html/storage/app
     env_file: ./backend.env
     depends_on: [db]
-    networks: [inspection-net]
+    networks: [inspectpro-net]
 
   backend-webserver:
     image: nginx:1.27-alpine
-    container_name: inspection-levage-backend-nginx
+    container_name: inspectpro-backend-nginx
     restart: unless-stopped
     volumes:
       - ./laravel-setup:/var/www/html
       - ./laravel-setup/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     ports:
-      # Exposé UNIQUEMENT sur localhost -> injoignable depuis l'extérieur
-      # du VM, seul le nginx hôte (qui, lui, écoute sur 0.0.0.0:443) peut
-      # l'atteindre en proxy_pass.
-      - "127.0.0.1:8080:80"
+      # Ports déjà occupés sur ce VM : 3000, 3001, 3100, 8080, 8090, 9000,
+      # 9090, 9093, 9100, 9187, 5432, 3306 (cf. `docker ps`). 8081 est libre.
+      - "127.0.0.1:8081:80"
     depends_on: [app]
-    networks: [inspection-net]
+    networks: [inspectpro-net]
 
   db:
     image: postgres:16-alpine
-    container_name: inspection-levage-db
+    container_name: inspectpro-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -57,13 +41,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks: [inspection-net]
-    # Pas de "ports:" -> jamais exposée, même pas sur localhost.
+    networks: [inspectpro-net]
+    # Pas de "ports:" -> aucun conflit possible avec taskflow-db (déjà sur
+    # le 5432 hôte) puisque ce Postgres n'est jamais exposé à l'hôte ; seul
+    # "app" l'atteint via le réseau docker interne (hostname "db", port
+    # 5432 *interne au conteneur*, sans rapport avec le 5432 déjà pris).
 
 volumes:
   pgdata:
   storage_data:
 
 networks:
-  inspection-net:
+  inspectpro-net:
     driver: bridge

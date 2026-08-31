@@ -1,0 +1,62 @@
+# À placer dans /etc/nginx/sites-available/inspectpro
+# puis activer avec :
+#   sudo ln -s /etc/nginx/sites-available/inspectpro /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Ce VM héberge déjà d'autres sites (taskflow, moodle, epay...) — ce fichier
+# ajoute simplement un nouveau bloc server pour mid-rg.bmoinet.net, il ne
+# touche à aucune config existante.
+
+server {
+    listen 80;
+    server_name mid-rg.bmoinet.net;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name mid-rg.bmoinet.net;
+
+    # Chemins du certificat déjà en place pour ce domaine — à adapter selon
+    # l'emplacement réel (ex: /etc/letsencrypt/live/mid-rg.bmoinet.net/ si
+    # certbot, ou l'emplacement du certificat interne BMOI).
+    ssl_certificate     /etc/ssl/certs/mid-rg.bmoinet.net/fullchain.pem;
+    ssl_certificate_key /etc/ssl/private/mid-rg.bmoinet.net/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Build React (npm run build -> dist/), copié ici
+    root /var/www/inspectpro/web;
+    index index.html;
+
+    client_max_body_size 25M;  # upload de photos depuis l'app d'inspection
+
+    access_log /var/log/nginx/inspectpro.access.log;
+    error_log  /var/log/nginx/inspectpro.error.log;
+
+    # --- API Laravel : proxy vers le conteneur backend (port hôte 8081) ---
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # --- Fichiers stockés par Laravel (storage:link -> photos, PDF de rapport...) ---
+    location /storage/ {
+        proxy_pass http://127.0.0.1:8081/storage/;
+        proxy_set_header Host $host;
+    }
+
+    # --- Frontend React (SPA) ---
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
