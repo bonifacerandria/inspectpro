@@ -1,3 +1,16 @@
+> ⚠️ **IMPORTANT** : ce dossier ne contient que le code applicatif construit
+> phase après phase (Controllers, Models, Services, migrations, seeders,
+> routes, vue du rapport). Ce n'est PAS une installation Laravel complète —
+> il manque `composer.json`, `artisan`, `vendor/`, `public/`, etc.
+>
+> **Avant tout `docker compose up --build`**, exécute :
+> ```bash
+> cd /var/www/inspectpro   # ou l'équivalent chez toi
+> bash laravel-setup/install.sh
+> ```
+> Ce script crée une vraie installation Laravel et y fusionne notre code.
+> Sans cette étape, `composer install` échoue avec "composer.json absent".
+
 # Phase 1.2 — Setup du projet Laravel (API)
 
 ## 1. Créer le projet
