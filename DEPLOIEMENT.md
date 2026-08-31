@@ -22,7 +22,7 @@ ne se mélangent jamais avec `taskflow_*` ou `moodle_*`.
 
 ```
 Internet (443/80)
-      │
+      │   
       ▼
 ┌───────────────────────┐   nginx NATIF du VM (/etc/nginx/sites-available)
 │   nginx (sur le VM)    │   - un bloc server DE PLUS parmi ceux déjà en place
