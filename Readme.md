@@ -1,721 +1,204 @@
-# **APPLICATION D'INSPECTION DES ÉQUIPEMENTS DE LEVAGE** 
-
-_Note d'architecture fonctionnelle et technique_ 
-
-Moteur d'inspection configurable — base d'équipements, points de contrôle dynamiques, anomalies, mesures et génération automatique de rapport 
-
-25 août 2026 
-
-## **1. Architecture générale du workflow** 
-
-Plutôt qu'un simple formulaire, l'application doit être conçue comme un moteur d'inspection configurable : une base de données des équipements, des points de contrôle adaptés à chaque famille, la gestion des photos, des anomalies et des mesures, avec génération automatique du rapport. 
-
-### **Parcours principal** 
-
-- Connexion 
-
-- Client 
-
-- Site 
-
-- Équipement 
-
-- Identification 
-
-- Inspection 
-
-- Points de contrôle 
-
-- Anomalies 
-
-- Photos 
-
-- Conclusion 
-
-- Validation 
-
-- Rapport PDF 
-
-### **Arborescence des familles d'équipements** 
-
-- ●ÉQUIPEMENTS DE LEVAGE 
-
-   - ○1. Accessoires de levage 
-
-      - ▪Élingue textile / nylon 
-
-      - ▪Élingue chaîne 
-
-      - ▪Élingue câble 
-
-      - ▪Manille 
-
-      - ▪Crochet 
-
-      - ▪Anneau de levage 
-
-      - ▪Pince de levage 
-
-      - ▪Autres accessoires 
-
-   - ○2. Équipements mobiles 
-
-      - ▪Grue auxiliaire 
-
-      - ▪Grue mobile 
-
-      - ▪Nacelle 
-
-      - ▪Chariot élévateur 
-
-      - ▪Autres 
-
-   - ○3. Équipements fixes 
-
-      - ▪Pont roulant 
-
-      - ▪Pont élévateur 
-
-      - ▪Palan électrique 
-
-      - ▪Poutre de levage 
-
-      - ▪Grue à tour 
-
-      - ▪Autres 
-
-**2. Écran d'accueil** 
-
-**TABLEAU DE BORD** 🔍  Nouvelle inspection 📋  Inspections en cours ✅  Inspections terminées ✅  Rapports ✅  Clients Sites 🏗️� ⚙️�  Équipements 📊  Statistiques ⚙️�  Paramètres 
-
-Bouton principal mis en avant : « + NOUVELLE INSPECTION ». 
-
-## **3. Création d'une inspection — Étape 1 : Client** 
-
-**Nouveau rapport** Client : [________________] Adresse : [________________] Contact : [________________] Référence client : [________________] Inspecteur : [________________] Date : [25/08/2026] **[ CONTINUER ]** 
-
-_Les informations du client sont enregistrées afin de ne pas être ressaisies lors de la prochaine inspection._ 
-
-## **4. Sélection du site** 
-
-Un même client peut avoir plusieurs sites. 
-
-- ●Client → Site → Équipement (hiérarchie de sélection) 
-
-#### **_Exemple_** 
-
-- ●Client : ABC Madagascar 
-
-   - ○Usine Antananarivo 
-
-   - ○Chantier Toamasina 
-
-   - ○Atelier Andraharo 
-
-## **5. Sélection de la famille d'équipement** 
-
-L'application affiche des cartes par famille : 
-
-#### **_Accessoires_** 
-
-- Élingue textile 
-
-- Élingue chaîne 
-
-- Élingue câble 
-
-- Manille 
-
-- Crochet 
-
-- Anneau 
-
-- Pince 
-
-#### **_Mobiles_** 
-
-- Grue auxiliaire 
-
-- Grue mobile 
-
-- Nacelle 
-
-- Chariot élévateur 
-
-#### **_Fixes_** 
-
-- Pont roulant 
-
-- Pont élévateur 
-
-- Palan électrique 
-
-- Poutre de levage 
-
-- Grue à tour 
-
-## **6. Identification de l'équipement** 
-
-Étape essentielle du parcours. 
-
-**IDENTIFICATION** Type : Pont roulant Marque : [___________] Modèle : [___________] N° de série : [___________] N° équipement : [___________] Année de fabrication : [___________] CMU : [___________] tonnes Constructeur : [___________] Localisation : [___________] 
-
-L'application propose directement : 📷 Photographier la plaque constructeur, puis un OCR pour une lecture automatique de la plaque (marque, type, CMU, n° série, année). L'inspecteur vérifie ensuite les informations reconnues. 
-
-## **7. Inspection dynamique** 
-
-C'est le cœur de l'application. Plutôt qu'un formulaire codé en dur pour chaque équipement, la structure doit être générique : 
-
-- ●Type équipement 
-
-   - ○Famille 
-
-▪Liste des points de contrôle 
-
-- Réponse 
-
-Chaque réponse peut déclencher une anomalie (avec photo à l'appui). 
-
-## **8. Exemple : élingue textile** 
-
-### **Identification** 
-
-- Type d'élingue 
-
-- CMU 
-
-- Longueur 
-
-- Fabricant 
-
-- N° identification 
-
-- Date de fabrication 
-
-- Marquage 
-
-### **Contrôle visuel** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Marquage lisible|C / O / NC / DM / DI|
-|État général|C / O / NC / DM / DI|
-|Coupures|C / O / NC / DM / DI|
-|Déchirures|C / O / NC / DM / DI|
-|Abrasion|C / O / NC / DM / DI|
-|Brûlures|C / O / NC / DM / DI|
-|Déformaton|C / O / NC / DM / DI|
-|Coutures|C / O / NC / DM / DI|
-|Boucles|C / O / NC / DM / DI|
-|Protecton des angles|C / O / NC / DM / DI|
-
-
-
-### **Pour chaque non-conformité** 
-
-Anomalie : [________________________] Gravité :  ○ Observation  ○ Anomalie  ○ Défaut majeur  ○ Danger immédiat Photo : [📷 Ajouter photo] 
-
-## **9. Exemple : manille** 
-
-La liste de contrôle change automatiquement selon le type d'équipement sélectionné : 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Marquage CMU|C / O / NC / DM / DI|
-|Identfcaton|C / O / NC / DM / DI|
-|Corps de manille|C / O / NC / DM / DI|
-
-
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Axe|C / O / NC / DM / DI|
-|Filetage|C / O / NC / DM / DI|
-|Goupille|C / O / NC / DM / DI|
-|Déformaton|C / O / NC / DM / DI|
-|Fissure|C / O / NC / DM / DI|
-|Usure|C / O / NC / DM / DI|
-|Corrosion|C / O / NC / DM / DI|
-|État des accessoires|C / O / NC / DM / DI|
-|Compatbilité avec l'utlisaton|C / O / NC / DM / DI|
-
-
-
-## **10. Exemple : grue auxiliaire** 
-
-Pour les équipements mobiles, le formulaire devient plus étoffé. 
-
-### **Identification** 
-
-- Marque 
-
-- Modèle 
-
-- N° série 
-
-- CMU 
-
-- Portée 
-
-- Année 
-
-- Immatriculation 
-
-### **Structure** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Châssis|C / O / NC / DM / DI|
-|Flèche|C / O / NC / DM / DI|
-|Vérins|C / O / NC / DM / DI|
-|Stabilisateur|C / O / NC / DM / DI|
-|Soudures|C / O / NC / DM / DI|
-|Déformaton|C / O / NC / DM / DI|
-|Corrosion|C / O / NC / DM / DI|
-
-
-
-### **Système hydraulique** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Flexibles|C / O / NC / DM / DI|
-
-
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Raccords|C / O / NC / DM / DI|
-|Vérins|C / O / NC / DM / DI|
-|Fuites|C / O / NC / DM / DI|
-|Pression|C / O / NC / DM / DI|
-|État général|C / O / NC / DM / DI|
-
-
-
-### **Système de levage** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Crochet|C / O / NC / DM / DI|
-|Linguet|C / O / NC / DM / DI|
-|Câble|C / O / NC / DM / DI|
-|Poulies|C / O / NC / DM / DI|
-|Treuil|C / O / NC / DM / DI|
-|Tambour|C / O / NC / DM / DI|
-
-
-
-### **Commandes** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Arrêt d'urgence|C / O / NC / DM / DI|
-|Limiteur|C / O / NC / DM / DI|
-|Indicateur de charge|C / O / NC / DM / DI|
-|Avertsseur sonore|C / O / NC / DM / DI|
-
-
-
-### **Stabilisateurs** 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Vérins|C / O / NC / DM / DI|
-|Patns|C / O / NC / DM / DI|
-|Blocage|C / O / NC / DM / DI|
-|Déformaton|C / O / NC / DM / DI|
-|Fuites|C / O / NC / DM / DI|
-
-
-
-### **Documents** 
-
-- Notice 
-
-- Certificat 
-
-- Registre 
-
-- Dernier contrôle 
-
-- Plaque constructeur 
-
-## **11. Exemple : pont roulant** 
-
-- ●PONT ROULANT 
-
-   - ○Identification 
-
-   - ○Plaque constructeur 
-
-   - ○Structure 
-
-▪Poutre ▪Sommiers ▪Soudures ▪Corrosion 
-
-○Translation ▪Roues ▪Rails ▪Motoréducteurs ▪Freins 
-
-- ○Levage 
-
-▪Palan ▪Câble ▪Crochet ▪Poulies ▪Tambour 
-
-- ○Électricité 
-
-▪Coffret 
-
-▪Câbles 
-
-▪Mise à la terre ▪Commandes 
-
-- ○Sécurité 
-
-▪Arrêt d'urgence 
-
-- ▪Limiteur de charge 
-
-- ▪Fin de course 
-
-▪Avertisseur 
-
-   - ▪Dispositifs de sécurité 
-
-- ○Essais 
-
-▪Essai à vide 
-
-- ▪Essai fonctionnel 
-
-- ▪Essai en charge 
-
-## **12. Système de notation** 
-
-Ne pas limiter les réponses à Conforme / Non conforme. Utiliser une échelle à cinq niveaux, plus une valeur « non applicable » : 
-
-- 🟢  C  — Conforme 
-
-- 🟠  O  — Observation 
-
-- ✅  NC — Non conforme 
-
-- ⚫  DM — Défaut majeur 
-
-- ⛔  DI — Danger immédiat 
-
-- ◻️�  NA — Non applicable 
-
-Cela permet de générer automatiquement une synthèse, par exemple : 
-
-**Nombre de points contrôlés : 48** Conformes :        39 Observations :      4 Non-conformes :     3 Défauts majeurs :   2 Danger immédiat :   0 
-
-## **13. Gestion des anomalies** 
-
-Fonction centrale de l'application. Lorsqu'un point est déclaré non conforme : 
-
-##### **ANOMALIE N°03** 
-
-Point : Câble de levage Constat : Usure importante avec plusieurs fils cassés. Gravité : [ Défaut majeur ] Photo : 📷 IMG_003 Action recommandée : Remplacement du câble avant remise en service. Responsable : [___________] Délai : [___________] 
-
-_L'application attribue automatiquement une numérotation : A-001, A-002, A-003…_ 
-
-## **14. Photos intelligentes** 
-
-Pour chaque anomalie : plusieurs photos numérotées (Photo 1, Photo 2, Photo 3…). 
-
-Photos obligatoires selon le type d'équipement — exemple pont roulant : 
-
-- Photo générale 
-
-- Plaque constructeur 
-
-- Crochet 
-
-- Câble 
-
-- Palan 
-
-- Structure 
-
-- Anomalies 
-
-_L'application peut bloquer la finalisation tant qu'une photo obligatoire manque : « ⚠️� Plaque constructeur non photographiée. »_ 
-
-## **15. Mesures** 
-
-Certains contrôles nécessitent une valeur numérique. 
-
-Diamètre câble nominal : 12 mm Diamètre mesuré : [ 10,8 ] mm Réduction : [ 10 % ] 
-
-Jeu mesuré : [ 2,5 ] mm Valeur admissible : [ ... ] Résultat : 🟢 Conforme 
-
-La base de données doit donc prévoir, pour chaque point de contrôle, un type de réponse : 
-
-- ●Point de contrôle 
-
-   - ○Type de réponse 
-
-      - ▪Oui / Non 
-
-      - ▪Conforme / Non conforme 
-
-      - ▪Texte 
-
-      - ▪Nombre 
-
-      - ▪Photo 
-
-      - ▪Choix multiple 
-
-      - ▪Mesure 
-
-## **16. Essais fonctionnels** 
-
-Pour les équipements mobiles et fixes, une section dédiée : 
-
-|**Point de contrôle**|**Réponse atendue**|
-|---|---|
-|Essai à vide|C / O / NC / DM / DI|
-|Essai montée/descente|C / O / NC / DM / DI|
-|Essai translaton|C / O / NC / DM / DI|
-|Essai arrêt d'urgence|C / O / NC / DM / DI|
-|Essai limiteur de charge|C / O / NC / DM / DI|
-|Essai fn de course|C / O / NC / DM / DI|
-
-
-
-Avec possibilité de saisir les valeurs : charge d'essai (kg) et résultat. 
-
-## **17. Documents contrôlés** 
-
-Section commune à tous les équipements : 
-
-- Notice constructeur 
-
-- Déclaration CE 
-
-- Certificat de conformité 
-
-- Registre de sécurité 
-
-- Rapport précédent 
-
-- Certificat/rapport de vérification 
-
-- Carnet de maintenance 
-
-- Document d'identification 
-
-Pour chaque document : 📷 photo / scan, ou ✅ pièce jointe PDF. 
-
-## **18. Conclusion automatique** 
-
-**SYNTHÈSE** Points contrôlés : 48 🟢 Conforme          39 🟠 Observations       4 ✅ Non-conformes      3 ⚫ Défauts majeurs    2 ⛔ Danger immédiat    0 
-
-L'application propose ensuite automatiquement un avis, par exemple : 
-
-#### • AVIS : ÉQUIPEMENT MAINTENU EN SERVICE SOUS RÉSERVE DE LA LEVÉE DES OBSERVATIONS 
-
-#### • AVIS : ÉQUIPEMENT NON AUTORISÉ À ÊTRE UTILISÉ EN L'ÉTAT 
-
-_L'inspecteur garde toujours la possibilité de modifier ou valider la conclusion proposée._ 
-
-## **19. Signature** 
-
-##### **INSPECTEUR** 
-
-Nom : ________________ Signature : ✍️� 
-
-##### **CLIENT / RESPONSABLE** 
-
-Nom : ________________ Signature : ✍️� 
-
-☑ J'ai vérifié les informations du rapport. **[ VALIDER L'INSPECTION ]** 
-
-## **20. Génération automatique du rapport PDF** 
-
-1. Informations générales 
-
-2. Identification de l'équipement 
-
-3. Caractéristiques techniques 
-
-4. Documents examinés 
-
-5. Points de contrôle 
-
-6. Essais réalisés 
-
-7. Anomalies constatées 
-
-8. Photographies 
-
-9. Synthèse 10.Conclusion 
-
-11.Signatures 
-
-Les photos des anomalies doivent être automatiquement liées au bon constat, par exemple : 
-
-**A-003 — Usure du câble** Photo 12 Photo 13 
-
-## **21. Base de données** 
-
-### **Hiérarchie des entités** 
-
-- ●Client 
-
-   - ○Site ▪Équipement 
-
-– Type – Caractéristiques – Inspection 
-
-Points de contrôle Anomalies Photos Mesures Essais Documents Conclusion 
-
-### **Tables principales** 
-
-|CLIENT|SITE|EQUIPEMENT|
-|---|---|---|
-|TYPE_EQUIPEMENT|INSPECTION|POINT_CONTROLE|
-|REPONSE_CONTROLE|ANOMALIE|PHOTO|
-|MESURE|ESSAI|DOCUMENT|
-|SIGNATURE|RAPPORT||
-
-
-
-## **22. Le point essentiel : rendre l'application configurable** 
-
-Éviter de coder en dur « si pont roulant → afficher ces 48 questions ». Créer à la place une base de données des points de contrôle. 
-
-#### **_Exemple — TYPE = PONT_ROULANT_** 
-
-- PC001 → Plaque constructeur 
-
-- PC002 → Structure 
-
-- PC003 → Soudures 
-
-- PC004 → Corrosion 
-
-- PC005 → Câble 
-
-- PC006 → Crochet 
-
-- PC007 → Linguet 
-
-- … 
-
-#### **_Exemple — TYPE = ELINGUE_TEXTILE_** 
-
-- PC101 → Marquage 
-
-- PC102 → Coupure 
-
-- PC103 → Abrasion 
-
-- PC104 → Couture 
-
-- … 
-
-Ainsi, un point de contrôle peut être ajouté ou modifié sans refaire l'application Android. 
-
-## **23. Deux applications en une** 
-
-### **📱 Application Inspecteur (terrain)** 
-
-- ●Inspection 
-
-   - ○Contrôle 
-
-   - ○Photos 
-
-   - ○Mesures 
-
-   - ○Signature 
-
-   - ○Rapport 
-
-### 💻 **Interface Administrateur** 
-
-- Gestion des clients 
-
-- Gestion des inspecteurs 
-
-- Gestion des équipements 
-
-- Gestion des familles 
-
-- Gestion des points de contrôle 
-
-- Gestion des critères 
-
-- Gestion des modèles de rapports 
-
-- Gestion des anomalies 
-
-- Statistiques 
-
-_Cela permet par exemple d'ajouter le contrôle du linguet sur les crochets sans publier une nouvelle version Android._ 
-
-## **24. Workflow final recommandé** 
-
-- ●Connexion 
-
-   - ○Tableau de bord 
-
-      - ▪+ Nouvelle inspection 
-
-         - Client 
-
-         - Site 
-
-– Famille équipement 
-
-Accessoires 
-
-Mobiles Fixes 
-
-- Type d'équipement 
-
-- Identification 
-
-- Plaque / photos 
-
-- Points de contrôle 
-
-Conforme 
-
-Observation 
-
-Non conforme → Anomalie → Photo 
-
-- Mesures 
-
-- Essais 
-
-- Documents 
-
-- Synthèse 
-
-- Conclusion 
-
-- Signatures 
-
-- Rapport PDF 
-
-Archivage / envoi 
-
-## **25. Recommandation de démarrage — MVP** 
-
-Commencer par un MVP limité à cinq types d'équipements : 
-
-- Élingue textile 
-
-- Élingue chaîne 
-
-- Manille 
-
-- Crochet 
-
-- Pont roulant 
-
-Une fois le moteur fonctionnel, ajouter progressivement : grue auxiliaire, grue mobile, nacelle, chariot élévateur, palan, grue à tour, etc. 
-
-_Cette approche est plus robuste que de développer immédiatement vingt formulaires différents._ 
-
+# Déploiement en production — VM Azure Ubuntu, nginx hôte + docker pour le backend
+
+## Architecture
+
+```
+Internet (443/80)
+      │
+      ▼
+┌───────────────────────┐   nginx NATIF du VM (/etc/nginx/sites-available)
+│   nginx (sur le VM)    │   - termine le SSL avec ton certificat existant
+│                        │   - sert le build React (fichiers statiques sur disque)
+└──────────┬─────────────┘   - proxy_pass /api et /storage vers Docker
+           │ 127.0.0.1:8080 uniquement (jamais exposé publiquement)
+           ▼
+   ┌──────────────────┐      ┌─────┐      ┌────┐
+   │ backend-webserver │ ───▶ │ app │ ───▶ │ db │   <- tout ça dans Docker,
+   │      (nginx)      │      │(PHP)│      │(PG)│      réseau interne uniquement
+   └──────────────────┘      └─────┘      └────┘
+```
+
+Seul le nginx natif du VM écoute sur 0.0.0.0:80/443. Le backend Docker
+n'expose son port que sur `127.0.0.1:8080` — injoignable depuis Internet,
+seul le nginx hôte peut l'atteindre. Postgres n'est exposé nulle part, même
+pas sur localhost.
+
+## 1. Prérequis sur le VM
+
+```bash
+# Docker + plugin compose
+curl -fsSL https://get.docker.com | sh
+sudo apt install -y docker-compose-plugin
+
+# nginx natif + Node (pour builder le frontend)
+sudo apt install -y nginx nodejs npm
+```
+
+**DNS** : le domaine doit déjà pointer (enregistrement A) vers l'IP publique
+du VM. Vérifie avec `dig +short votre-domaine.mg`.
+
+**Azure NSG** : ports 80 et 443 ouverts en entrée sur le NSG du VM. Le port
+8080 (backend) ne doit **pas** être ouvert dans le NSG — de toute façon il
+n'écoute que sur `127.0.0.1`, donc même une règle NSG ouverte ne le rendrait
+pas accessible depuis l'extérieur, mais autant ne pas l'ouvrir par principe.
+
+## 2. Arborescence sur le VM
+
+```bash
+sudo mkdir -p /opt/inspection-levage
+sudo mkdir -p /var/www/inspection-levage/web
+cd /opt/inspection-levage
+```
+
+Copier :
+- `laravel-setup.zip` → `/opt/inspection-levage/laravel-setup/`
+- `web-app.zip` → `/opt/inspection-levage/web-app/`
+- `deploiement.zip` (ce livrable) → `docker-compose.prod.yml` et
+  `nginx-host/inspection-levage` à récupérer depuis ce zip
+
+```
+/opt/inspection-levage/
+├── laravel-setup/
+├── web-app/
+├── docker-compose.prod.yml
+├── .env                       <- à créer depuis .env.example
+└── backend.env                <- à créer depuis backend.env.example
+
+/var/www/inspection-levage/web/   <- build React (étape 4)
+```
+
+## 3. Installer le certificat existant
+
+Peu importe l'origine du certificat (certbot, autorité payante, certificat
+interne de la banque), il te faut deux fichiers PEM accessibles au nginx du
+VM. Par exemple :
+
+```bash
+sudo mkdir -p /etc/ssl/certs/votre-domaine.mg /etc/ssl/private/votre-domaine.mg
+sudo cp /chemin/vers/fullchain.pem /etc/ssl/certs/votre-domaine.mg/
+sudo cp /chemin/vers/privkey.pem   /etc/ssl/private/votre-domaine.mg/
+sudo chmod 600 /etc/ssl/private/votre-domaine.mg/privkey.pem
+```
+
+Si le certificat vient de **certbot** déjà installé sur ce VM, les fichiers
+existent déjà sous `/etc/letsencrypt/live/votre-domaine.mg/` — dans ce cas,
+pointe directement `ssl_certificate`/`ssl_certificate_key` vers ce dossier
+dans la config nginx (étape 5) plutôt que de copier les fichiers.
+
+## 4. Builder et déployer le frontend
+
+Le build React est buildé une fois (pas dans un conteneur) et ses fichiers
+statiques sont copiés là où le nginx hôte va les servir :
+
+```bash
+cd /opt/inspection-levage/web-app
+cp .env.example .env
+# éditer .env : VITE_API_URL=/api   (chemin relatif, même domaine que l'API)
+
+npm install
+npm run build
+
+sudo cp -r dist/* /var/www/inspection-levage/web/
+sudo chown -R www-data:www-data /var/www/inspection-levage/web
+```
+
+À chaque mise à jour du frontend, il suffira de refaire `npm run build` et
+`cp` — pas besoin de rebuild un conteneur.
+
+## 5. Configurer et activer le site nginx
+
+```bash
+sudo cp nginx-host/inspection-levage /etc/nginx/sites-available/inspection-levage
+sudo nano /etc/nginx/sites-available/inspection-levage
+# -> remplacer "votre-domaine.mg" par ton vrai domaine
+# -> vérifier/adapter les chemins ssl_certificate / ssl_certificate_key
+
+sudo ln -s /etc/nginx/sites-available/inspection-levage /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default   # évite un conflit avec le site par défaut
+
+sudo nginx -t                     # vérifie la syntaxe avant de recharger
+sudo systemctl reload nginx
+```
+
+## 6. Configurer et démarrer le backend Docker
+
+```bash
+cd /opt/inspection-levage
+cp .env.example .env
+cp backend.env.example backend.env
+```
+
+Éditer les deux fichiers :
+- **`.env`** : `POSTGRES_PASSWORD` (mot de passe fort)
+- **`backend.env`** : `APP_URL=https://votre-domaine.mg`, `DB_PASSWORD`
+  (**identique** à `POSTGRES_PASSWORD` dans `.env`), `FRONTEND_URL`, config mail
+
+```bash
+chmod 600 .env backend.env
+docker compose -f docker-compose.prod.yml up -d --build
+
+docker compose -f docker-compose.prod.yml exec app php artisan key:generate
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --seed --force
+docker compose -f docker-compose.prod.yml exec app php artisan storage:link
+docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+docker compose -f docker-compose.prod.yml exec app php artisan route:cache
+```
+
+## 7. Vérification
+
+```bash
+docker compose -f docker-compose.prod.yml ps        # 3 conteneurs "Up"
+curl -I http://127.0.0.1:8080/api/login              # doit répondre (405 en GET = normal, route en POST)
+sudo systemctl status nginx
+```
+
+Puis dans un navigateur : `https://votre-domaine.mg` doit afficher l'écran
+de login.
+
+## 8. Renouvellement du certificat
+
+- **Certbot** : le renouvellement auto (cron/systemd timer déjà en place)
+  continue de fonctionner puisque nginx lit directement les fichiers dans
+  `/etc/letsencrypt/live/...`. Il recharge nginx automatiquement après
+  renouvellement (comportement par défaut de certbot avec le plugin nginx).
+- **Certificat tiers/manuel** : remplacer les fichiers dans
+  `/etc/ssl/certs/votre-domaine.mg/` et `/etc/ssl/private/votre-domaine.mg/`
+  puis `sudo systemctl reload nginx`.
+
+## 9. Mises à jour de l'application
+
+```bash
+# Frontend
+cd /opt/inspection-levage/web-app && git pull
+npm install && npm run build
+sudo cp -r dist/* /var/www/inspection-levage/web/
+
+# Backend
+cd /opt/inspection-levage/laravel-setup && git pull
+cd /opt/inspection-levage
+docker compose -f docker-compose.prod.yml up -d --build app backend-webserver
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+```
+
+## 10. Sauvegardes
+
+```bash
+# Dump quotidien de la base (à mettre en cron)
+docker compose -f docker-compose.prod.yml exec -T db \
+  pg_dump -U inspection_user inspection_levage | gzip > /opt/backups/db-$(date +%F).sql.gz
+
+# Photos/documents uploadés (volume storage_data)
+docker run --rm -v inspection-levage_storage_data:/data -v /opt/backups:/backup \
+  alpine tar czf /backup/storage-$(date +%F).tar.gz -C /data .
+```
+
+## 11. Démarrage automatique au reboot
+
+```bash
+sudo systemctl enable docker
+sudo systemctl enable nginx
+```
+
+Les conteneurs ont `restart: unless-stopped` — ils redémarrent seuls avec
+le démon Docker après un reboot du VM.
