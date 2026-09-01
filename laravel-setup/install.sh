@@ -31,8 +31,13 @@ composer_docker() {
   # $1 = dossier dans lequel exécuter composer (chemin absolu)
   local workdir="$1"; shift
   docker run --rm -u "$(id -u):$(id -g)" -v "${workdir}:/app" -w /app \
-    -e HOME=/tmp \
-    "$COMPOSER_IMAGE" sh -c "git config --global --add safe.directory /app 2>/dev/null; composer $*"
+    -e HOME=/tmp -e COMPOSER_HOME=/tmp/composer \
+    "$COMPOSER_IMAGE" sh -c "
+      git config --global --add safe.directory /app 2>/dev/null
+      mkdir -p /tmp/composer
+      composer config -g policy.advisories.block false 2>/dev/null || true
+      composer $*
+    "
 }
 
 if [ ! -d "$OVERLAY_DIR" ]; then
