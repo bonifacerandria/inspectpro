@@ -13,6 +13,11 @@ services:
     volumes:
       - ./laravel-setup:/var/www/html
       - storage_data:/var/www/html/storage/app
+      # Laravel a besoin d'un vrai FICHIER .env à la racine du projet
+      # (certaines commandes, comme "artisan key:generate", l'éditent
+      # directement sur disque) — env_file seul ne suffit pas, il n'injecte
+      # que des variables d'environnement au process, sans créer de fichier.
+      - ./backend.env:/var/www/html/.env
     env_file: ./backend.env
     depends_on: [db]
     networks: [inspectpro-net]
