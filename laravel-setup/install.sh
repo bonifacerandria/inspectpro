@@ -67,7 +67,7 @@ composer_docker "$(pwd)/$TMP_DIR" require laravel/sanctum --no-interaction --no-
 composer_docker "$(pwd)/$TMP_DIR" require barryvdh/laravel-dompdf --no-interaction --no-audit
 
 echo "==> 4/5 Vérification finale : composer install à blanc (doit réussir, PHP 8.3) ..."
-composer_docker "$(pwd)/$TMP_DIR" install --no-interaction --no-audit --dry-run
+composer_docker "$(pwd)/$TMP_DIR" install --no-interaction --dry-run
 
 echo "==> 5/5 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
 BACKUP_DIR="${OVERLAY_DIR}-overlay-backup-$(date +%s)"
