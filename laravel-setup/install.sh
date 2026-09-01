@@ -30,7 +30,9 @@ COMPOSER_IMAGE="composer:2"
 composer_docker() {
   # $1 = dossier dans lequel exécuter composer (chemin absolu)
   local workdir="$1"; shift
-  docker run --rm -u "$(id -u):$(id -g)" -v "${workdir}:/app" -w /app "$COMPOSER_IMAGE" "$@"
+  docker run --rm -u "$(id -u):$(id -g)" -v "${workdir}:/app" -w /app \
+    -e HOME=/tmp \
+    "$COMPOSER_IMAGE" sh -c "git config --global --add safe.directory /app 2>/dev/null; composer $*"
 }
 
 if [ ! -d "$OVERLAY_DIR" ]; then
@@ -40,7 +42,7 @@ fi
 
 echo "==> 1/4 Création d'une installation Laravel neuve dans $TMP_DIR (via Docker, PHP 8.3) ..."
 mkdir -p "$TMP_DIR"
-composer_docker "$(pwd)" create-project laravel/laravel:^11.0 "$TMP_DIR" --no-interaction --prefer-dist
+composer_docker "$(pwd)" create-project laravel/laravel:^11.0 "$TMP_DIR" --no-interaction --prefer-dist --no-audit
 
 echo "==> 2/4 Fusion du code applicatif ..."
 cp -r "$OVERLAY_DIR/app/Models/." "$TMP_DIR/app/Models/"
@@ -58,8 +60,8 @@ cp -r "$OVERLAY_DIR/docker" "$TMP_DIR/"
 cp "$OVERLAY_DIR/app/Providers/AppServiceProvider.snippet.php" "$TMP_DIR/app/Providers/" 2>/dev/null || true
 
 echo "==> 3/4 Ajout de Sanctum et dompdf à composer.json (via Docker) ..."
-composer_docker "$(pwd)/$TMP_DIR" require laravel/sanctum --no-interaction
-composer_docker "$(pwd)/$TMP_DIR" require barryvdh/laravel-dompdf --no-interaction
+composer_docker "$(pwd)/$TMP_DIR" require laravel/sanctum --no-interaction --no-audit
+composer_docker "$(pwd)/$TMP_DIR" require barryvdh/laravel-dompdf --no-interaction --no-audit
 
 echo "==> 4/4 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
 mv "$OVERLAY_DIR" "${OVERLAY_DIR}-overlay-backup"
