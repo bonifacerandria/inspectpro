@@ -55,7 +55,7 @@ cp "$OVERLAY_DIR/routes/api.php" "$TMP_DIR/routes/api.php"
 mkdir -p "$TMP_DIR/resources/views/rapports"
 cp -r "$OVERLAY_DIR/resources/views/rapports/." "$TMP_DIR/resources/views/rapports/"
 cp -r "$OVERLAY_DIR/docker" "$TMP_DIR/"
-# On a déjà fusionné manuellement AppServiceProvider.php à ce stade (voir
+# On a déjà fusionné manuellement AppServicePr  ovider.php à ce stade (voir
 # étape précédente) -> on le préserve en l'écrasant PAR-DESSUS la version
 # par défaut générée par create-project.
 if [ -f "$OVERLAY_DIR/app/Providers/AppServiceProvider.php" ]; then
