@@ -2,15 +2,20 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------
-# À exécuter UNE SEULE FOIS, sur une machine avec accès Internet à
-# Packagist (le VM Azure, ou en local puis on transfère le résultat).
+# À exécuter UNE SEULE FOIS sur le VM.
+#
+# Toutes les commandes composer tournent DANS un conteneur Docker
+# (image officielle composer:2, PHP 8.3) plutôt que sur le PHP de l'hôte —
+# le VM peut avoir une version de PHP plus ancienne (ex: PHP 7.4 utilisé
+# par d'autres apps déjà en place) et ce n'est pas grave, on ne s'en sert
+# pas du tout ici.
 #
 # Ce script :
 #  1. Crée une vraie installation Laravel neuve dans un dossier temporaire
-#  2. Copie par-dessus tout le code applicatif qu'on a construit (Controllers,
-#     Models, Services, Observers, migrations, seeders, routes/api.php, vue
-#     du rapport PDF, config docker)
-#  3. Installe Sanctum et dompdf
+#  2. Copie par-dessus tout le code applicatif construit précédemment
+#     (Controllers, Models, Services, Observers, migrations, seeders,
+#     routes/api.php, vue du rapport PDF, config docker)
+#  3. Ajoute laravel/sanctum et barryvdh/laravel-dompdf à composer.json
 #  4. Remplace laravel-setup/ par le résultat fusionné (l'original est
 #     sauvegardé dans laravel-setup-overlay-backup/ par précaution)
 #
@@ -20,16 +25,24 @@ set -euo pipefail
 
 OVERLAY_DIR="laravel-setup"
 TMP_DIR="laravel-tmp-$$"
+COMPOSER_IMAGE="composer:2"
+
+composer_docker() {
+  # $1 = dossier dans lequel exécuter composer (chemin absolu)
+  local workdir="$1"; shift
+  docker run --rm -u "$(id -u):$(id -g)" -v "${workdir}:/app" -w /app "$COMPOSER_IMAGE" "$@"
+}
 
 if [ ! -d "$OVERLAY_DIR" ]; then
   echo "Erreur : dossier '$OVERLAY_DIR' introuvable. Lance ce script depuis /var/www/inspectpro (ou équivalent)."
   exit 1
 fi
 
-echo "==> 1/5 Création d'une installation Laravel neuve dans $TMP_DIR ..."
-composer create-project laravel/laravel:^11.0 "$TMP_DIR" --no-interaction
+echo "==> 1/4 Création d'une installation Laravel neuve dans $TMP_DIR (via Docker, PHP 8.3) ..."
+mkdir -p "$TMP_DIR"
+composer_docker "$(pwd)" create-project laravel/laravel:^11.0 "$TMP_DIR" --no-interaction --prefer-dist
 
-echo "==> 2/5 Fusion du code applicatif ..."
+echo "==> 2/4 Fusion du code applicatif ..."
 cp -r "$OVERLAY_DIR/app/Models/." "$TMP_DIR/app/Models/"
 mkdir -p "$TMP_DIR/app/Http/Controllers/Api"
 cp -r "$OVERLAY_DIR/app/Http/Controllers/Api/." "$TMP_DIR/app/Http/Controllers/Api/"
@@ -42,36 +55,39 @@ cp "$OVERLAY_DIR/routes/api.php" "$TMP_DIR/routes/api.php"
 mkdir -p "$TMP_DIR/resources/views/rapports"
 cp -r "$OVERLAY_DIR/resources/views/rapports/." "$TMP_DIR/resources/views/rapports/"
 cp -r "$OVERLAY_DIR/docker" "$TMP_DIR/"
+cp "$OVERLAY_DIR/app/Providers/AppServiceProvider.snippet.php" "$TMP_DIR/app/Providers/" 2>/dev/null || true
 
-echo "==> 3/5 Installation de Sanctum ..."
-(cd "$TMP_DIR" && composer require laravel/sanctum --no-interaction)
-(cd "$TMP_DIR" && php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider" --no-interaction)
+echo "==> 3/4 Ajout de Sanctum et dompdf à composer.json (via Docker) ..."
+composer_docker "$(pwd)/$TMP_DIR" require laravel/sanctum --no-interaction
+composer_docker "$(pwd)/$TMP_DIR" require barryvdh/laravel-dompdf --no-interaction
 
-echo "==> 4/5 Installation de dompdf (génération du rapport PDF) ..."
-(cd "$TMP_DIR" && composer require barryvdh/laravel-dompdf --no-interaction)
-
-echo "==> 5/5 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
+echo "==> 4/4 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
 mv "$OVERLAY_DIR" "${OVERLAY_DIR}-overlay-backup"
 mv "$TMP_DIR" "$OVERLAY_DIR"
 
 cat <<MSG
 
-Terminé. Étapes manuelles restantes (ne peuvent pas être automatisées) :
+Terminé. Étapes manuelles restantes :
 
-1. Ajouter le trait Sanctum si ce n'est pas déjà fait (déjà présent dans
-   $OVERLAY_DIR/app/Models/User.php copié à l'étape 2, à vérifier) :
-   class User extends Authenticatable { use HasApiTokens, HasFactory, Notifiable; }
+1. Vérifier que $OVERLAY_DIR/app/Models/User.php utilise bien le trait
+   Sanctum : "use Laravel\Sanctum\HasApiTokens;" + "use HasApiTokens, ..."
+   (déjà présent dans le fichier qu'on a copié à l'étape 2, à confirmer).
 
-2. Brancher l'Observer d'invalidation de cache dans
-   $OVERLAY_DIR/app/Providers/AppServiceProvider.php (méthode boot()) :
-   voir le contenu de app/Providers/AppServiceProvider.snippet.php
-   (${OVERLAY_DIR}-overlay-backup/app/Providers/AppServiceProvider.snippet.php)
+2. Coller le contenu de
+   ${OVERLAY_DIR}/app/Providers/AppServiceProvider.snippet.php
+   dans le vrai $OVERLAY_DIR/app/Providers/AppServiceProvider.php
+   (méthode boot()), puis supprimer le fichier .snippet.php.
 
-3. Copier .env.example vers .env et renseigner les valeurs (DB, APP_URL...)
+3. Copier .env.example vers .env et renseigner les valeurs (fait
+   normalement via backend.env au niveau du docker-compose, cf. DEPLOIEMENT.md).
 
-4. Le dossier ${OVERLAY_DIR}-overlay-backup/ peut être supprimé une fois
-   que tu as vérifié que tout a bien été repris.
-
-Tu peux maintenant relancer :
+Prochaine étape :
    docker compose -f docker-compose.prod.yml up -d --build
+
+Puis, une fois les conteneurs démarrés (le CONTENEUR "app" a bien PHP 8.3,
+peu importe la version sur l'hôte) :
+   docker compose -f docker-compose.prod.yml exec app php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --no-interaction
+   docker compose -f docker-compose.prod.yml exec app php artisan key:generate
+   docker compose -f docker-compose.prod.yml exec app php artisan migrate --seed --force
+   docker compose -f docker-compose.prod.yml exec app php artisan storage:link
 MSG

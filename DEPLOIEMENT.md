@@ -22,7 +22,7 @@ ne se mélangent jamais avec `taskflow_*` ou `moodle_*`.
 
 ```
 Internet (443/80)
-      │   
+      │
       ▼
 ┌───────────────────────┐   nginx NATIF du VM (/etc/nginx/sites-available)
 │   nginx (sur le VM)    │   - un bloc server DE PLUS parmi ceux déjà en place
@@ -143,12 +143,18 @@ docker compose -f docker-compose.prod.yml up -d --build
 # Vérifier qu'aucun nom ne rentre en collision avec l'existant
 docker ps --format '{{.Names}}' | grep inspectpro
 
+docker compose -f docker-compose.prod.yml exec app php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider" --no-interaction
 docker compose -f docker-compose.prod.yml exec app php artisan key:generate
 docker compose -f docker-compose.prod.yml exec app php artisan migrate --seed --force
 docker compose -f docker-compose.prod.yml exec app php artisan storage:link
 docker compose -f docker-compose.prod.yml exec app php artisan config:cache
 docker compose -f docker-compose.prod.yml exec app php artisan route:cache
 ```
+
+> `vendor:publish` doit tourner AVANT `migrate` : c'est cette commande qui
+> ajoute la migration de la table `personal_access_tokens` (utilisée par
+> Sanctum pour stocker les tokens d'API), sans quoi les migrations seraient
+> incomplètes.
 
 ## 7. Vérification
 
