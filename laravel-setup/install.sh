@@ -4,35 +4,33 @@ set -euo pipefail
 # ---------------------------------------------------------------
 # À exécuter UNE SEULE FOIS sur le VM.
 #
-# Toutes les commandes composer tournent DANS un conteneur Docker
-# (image officielle composer:2, PHP 8.3) plutôt que sur le PHP de l'hôte —
-# le VM peut avoir une version de PHP plus ancienne (ex: PHP 7.4 utilisé
-# par d'autres apps déjà en place) et ce n'est pas grave, on ne s'en sert
-# pas du tout ici.
-#
-# Ce script :
-#  1. Crée une vraie installation Laravel neuve dans un dossier temporaire
-#  2. Copie par-dessus tout le code applicatif construit précédemment
-#     (Controllers, Models, Services, Observers, migrations, seeders,
-#     routes/api.php, vue du rapport PDF, config docker)
-#  3. Ajoute laravel/sanctum et barryvdh/laravel-dompdf à composer.json
-#  4. Remplace laravel-setup/ par le résultat fusionné (l'original est
-#     sauvegardé dans laravel-setup-overlay-backup/ par précaution)
-#
-# Lancer depuis le dossier QUI CONTIENT laravel-setup/ :
-#   cd /var/www/inspectpro && bash laravel-setup/install.sh
+# Toutes les commandes composer tournent dans une image Docker LOCALE
+# (docker/composer/Dockerfile) construite avec EXACTEMENT le même PHP
+# (8.3) que le Dockerfile de production (docker/php/Dockerfile). C'est
+# important : composer résout les versions des paquets en fonction du PHP
+# qui l'exécute — utiliser l'image officielle "composer:2" telle quelle
+# verrouillerait des paquets nécessitant PHP 8.4+ (elle embarque désormais
+# PHP 8.4), ce qui casserait ensuite le "composer install" en prod (PHP 8.3).
 # ---------------------------------------------------------------
 
 OVERLAY_DIR="laravel-setup"
 TMP_DIR="laravel-tmp-$$"
-COMPOSER_IMAGE="composer:2"
+COMPOSER_IMAGE="inspectpro-composer-php83"
+
+if [ ! -d "$OVERLAY_DIR" ]; then
+  echo "Erreur : dossier '$OVERLAY_DIR' introuvable. Lance ce script depuis /var/www/inspectpro (ou équivalent)."
+  exit 1
+fi
+
+echo "==> 0/5 Construction de l'image composer (PHP 8.3, alignée sur la prod) ..."
+docker build -t "$COMPOSER_IMAGE" -f "$OVERLAY_DIR/docker/composer/Dockerfile" "$OVERLAY_DIR/docker/composer"
 
 composer_docker() {
   # $1 = dossier dans lequel exécuter composer (chemin absolu)
   local workdir="$1"; shift
   docker run --rm -u "$(id -u):$(id -g)" -v "${workdir}:/app" -w /app \
     -e HOME=/tmp -e COMPOSER_HOME=/tmp/composer \
-    "$COMPOSER_IMAGE" sh -c "
+    --entrypoint sh "$COMPOSER_IMAGE" -c "
       git config --global --add safe.directory /app 2>/dev/null
       mkdir -p /tmp/composer
       composer config -g policy.advisories.block false 2>/dev/null || true
@@ -40,16 +38,11 @@ composer_docker() {
     "
 }
 
-if [ ! -d "$OVERLAY_DIR" ]; then
-  echo "Erreur : dossier '$OVERLAY_DIR' introuvable. Lance ce script depuis /var/www/inspectpro (ou équivalent)."
-  exit 1
-fi
-
-echo "==> 1/4 Création d'une installation Laravel neuve dans $TMP_DIR (via Docker, PHP 8.3) ..."
+echo "==> 1/5 Création d'une installation Laravel neuve dans $TMP_DIR (PHP 8.3) ..."
 mkdir -p "$TMP_DIR"
 composer_docker "$(pwd)" create-project laravel/laravel:^11.0 "$TMP_DIR" --no-interaction --prefer-dist --no-audit
 
-echo "==> 2/4 Fusion du code applicatif ..."
+echo "==> 2/5 Fusion du code applicatif ..."
 cp -r "$OVERLAY_DIR/app/Models/." "$TMP_DIR/app/Models/"
 mkdir -p "$TMP_DIR/app/Http/Controllers/Api"
 cp -r "$OVERLAY_DIR/app/Http/Controllers/Api/." "$TMP_DIR/app/Http/Controllers/Api/"
@@ -62,39 +55,41 @@ cp "$OVERLAY_DIR/routes/api.php" "$TMP_DIR/routes/api.php"
 mkdir -p "$TMP_DIR/resources/views/rapports"
 cp -r "$OVERLAY_DIR/resources/views/rapports/." "$TMP_DIR/resources/views/rapports/"
 cp -r "$OVERLAY_DIR/docker" "$TMP_DIR/"
-cp "$OVERLAY_DIR/app/Providers/AppServiceProvider.snippet.php" "$TMP_DIR/app/Providers/" 2>/dev/null || true
+# On a déjà fusionné manuellement AppServiceProvider.php à ce stade (voir
+# étape précédente) -> on le préserve en l'écrasant PAR-DESSUS la version
+# par défaut générée par create-project.
+if [ -f "$OVERLAY_DIR/app/Providers/AppServiceProvider.php" ]; then
+  cp "$OVERLAY_DIR/app/Providers/AppServiceProvider.php" "$TMP_DIR/app/Providers/AppServiceProvider.php"
+fi
 
-echo "==> 3/4 Ajout de Sanctum et dompdf à composer.json (via Docker) ..."
+echo "==> 3/5 Ajout de Sanctum et dompdf à composer.json (PHP 8.3) ..."
 composer_docker "$(pwd)/$TMP_DIR" require laravel/sanctum --no-interaction --no-audit
 composer_docker "$(pwd)/$TMP_DIR" require barryvdh/laravel-dompdf --no-interaction --no-audit
 
-echo "==> 4/4 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
-mv "$OVERLAY_DIR" "${OVERLAY_DIR}-overlay-backup"
+echo "==> 4/5 Vérification finale : composer install à blanc (doit réussir, PHP 8.3) ..."
+composer_docker "$(pwd)/$TMP_DIR" install --no-interaction --no-audit --dry-run
+
+echo "==> 5/5 Remplacement de $OVERLAY_DIR par la version fusionnée ..."
+BACKUP_DIR="${OVERLAY_DIR}-overlay-backup-$(date +%s)"
+mv "$OVERLAY_DIR" "$BACKUP_DIR"
 mv "$TMP_DIR" "$OVERLAY_DIR"
 
 cat <<MSG
 
-Terminé. Étapes manuelles restantes :
-
-1. Vérifier que $OVERLAY_DIR/app/Models/User.php utilise bien le trait
-   Sanctum : "use Laravel\Sanctum\HasApiTokens;" + "use HasApiTokens, ..."
-   (déjà présent dans le fichier qu'on a copié à l'étape 2, à confirmer).
-
-2. Coller le contenu de
-   ${OVERLAY_DIR}/app/Providers/AppServiceProvider.snippet.php
-   dans le vrai $OVERLAY_DIR/app/Providers/AppServiceProvider.php
-   (méthode boot()), puis supprimer le fichier .snippet.php.
-
-3. Copier .env.example vers .env et renseigner les valeurs (fait
-   normalement via backend.env au niveau du docker-compose, cf. DEPLOIEMENT.md).
+Terminé avec succès.
 
 Prochaine étape :
    docker compose -f docker-compose.prod.yml up -d --build
 
-Puis, une fois les conteneurs démarrés (le CONTENEUR "app" a bien PHP 8.3,
-peu importe la version sur l'hôte) :
+Puis, une fois les conteneurs démarrés :
    docker compose -f docker-compose.prod.yml exec app php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --no-interaction
    docker compose -f docker-compose.prod.yml exec app php artisan key:generate
    docker compose -f docker-compose.prod.yml exec app php artisan migrate --seed --force
    docker compose -f docker-compose.prod.yml exec app php artisan storage:link
+   docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+   docker compose -f docker-compose.prod.yml exec app php artisan route:cache
+
+Le dossier $BACKUP_DIR peut être supprimé une fois que
+tu as vérifié que tout a bien été repris (notamment que
+AppServiceProvider.php contient bien les 5 lignes ::observe(...)).
 MSG
