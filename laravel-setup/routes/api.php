@@ -65,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/photos/{photo}', [PhotoController::class, 'destroy']);
 
     // --- Rapport PDF ---
+    Route::get('/rapports', [RapportController::class, 'index']);
     Route::post('/inspections/{inspection}/rapport', [RapportController::class, 'generer']);
     Route::get('/rapports/{rapport}/telecharger', [RapportController::class, 'telecharger'])->name('rapports.telecharger');
 

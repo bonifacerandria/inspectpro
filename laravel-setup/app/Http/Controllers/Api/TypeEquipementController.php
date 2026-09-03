@@ -20,7 +20,7 @@ class TypeEquipementController extends Controller
         $types = TypeEquipement::with('famille')
             ->orderBy('ordre')
             ->get()
-            ->groupBy(fn ($t) => $t->famille->code);
+            ->groupBy(fn ($t) => $t->famille->code ?? 'AUTRE');
 
         return response()->json($types);
     }

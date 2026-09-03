@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
+import EmptyState from '../components/ui/EmptyState'
+import { theme, s } from '../styles/theme'
 
 const TYPE_VIDE = { famille_id: '', code: '', libelle: '', icone: '', actif: true, ordre: 0 }
 
@@ -27,8 +29,8 @@ export default function TypesEquipement() {
       ])
       setTypesParFamille(types)
       setFamilles(fam)
-    } catch {
-      setErreur('Erreur de chargement.')
+    } catch (err) {
+      setErreur(err.response?.data?.message || 'Erreur de chargement.')
     } finally {
       setChargement(false)
     }
@@ -46,12 +48,8 @@ export default function TypesEquipement() {
   function ouvrirEdition(type) {
     setTypeEnEdition(type)
     setFormulaire({
-      famille_id: type.famille_id,
-      code: type.code,
-      libelle: type.libelle,
-      icone: type.icone || '',
-      actif: type.actif,
-      ordre: type.ordre,
+      famille_id: type.famille_id, code: type.code, libelle: type.libelle,
+      icone: type.icone || '', actif: type.actif, ordre: type.ordre,
     })
     setErreurFormulaire(null)
     setModaleOuverte(true)
@@ -62,11 +60,8 @@ export default function TypesEquipement() {
     setEnvoiEnCours(true)
     setErreurFormulaire(null)
     try {
-      if (typeEnEdition) {
-        await apiClient.put(`/types-equipement/${typeEnEdition.id}`, formulaire)
-      } else {
-        await apiClient.post('/types-equipement', formulaire)
-      }
+      if (typeEnEdition) await apiClient.put(`/types-equipement/${typeEnEdition.id}`, formulaire)
+      else await apiClient.post('/types-equipement', formulaire)
       setModaleOuverte(false)
       await charger()
     } catch (err) {
@@ -88,86 +83,84 @@ export default function TypesEquipement() {
   }
 
   if (chargement) return <p>Chargement…</p>
-  if (erreur) return <p style={{ color: '#c0392b' }}>{erreur}</p>
+  if (erreur) return <p style={{ color: theme.colors.danger }}>{erreur}</p>
+
+  const aucunType = Object.keys(typesParFamille).length === 0
+    || Object.values(typesParFamille).every((arr) => arr.length === 0)
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0 }}>Types d'équipement</h1>
-        <button onClick={() => ouvrirCreation()} style={styles.boutonPrincipal}>
-          + Nouveau type
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+        <p style={s.pageSubtitle}>Moteur d'inspection configurable — familles, types, points de contrôle</p>
+        <button onClick={() => ouvrirCreation()} style={s.btnPrimary}>+ Nouveau type</button>
       </div>
 
+      {aucunType && (
+        <div style={s.card}>
+          <EmptyState icon="🧩" title="Aucun type d'équipement" description="Crée le premier type pour démarrer le moteur d'inspection." />
+        </div>
+      )}
+
       {familles.map((famille) => (
-        <section key={famille.id} style={{ marginBottom: '1.5rem' }}>
-          <h2 style={styles.titreFamille}>{famille.libelle}</h2>
-          <div style={styles.grille}>
-            {(typesParFamille[famille.code] || []).map((type) => (
-              <div key={type.id} style={{ ...styles.carte, opacity: type.actif ? 1 : 0.5 }}>
-                <div style={{ fontWeight: 600 }}>{type.libelle}</div>
-                <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '0.75rem' }}>
-                  {type.code} {!type.actif && '· inactif'}
+        (typesParFamille[famille.code] || []).length > 0 && (
+          <section key={famille.id} style={{ marginBottom: '20px' }}>
+            <h2 style={styles.titreFamille}>{famille.libelle}</h2>
+            <div style={styles.grille}>
+              {(typesParFamille[famille.code] || []).map((type) => (
+                <div key={type.id} style={{ ...styles.carte, opacity: type.actif ? 1 : 0.55 }}>
+                  <div style={styles.carteEntete}>
+                    <span style={styles.carteTitre}>{type.libelle}</span>
+                    {!type.actif && <span style={styles.badgeInactif}>inactif</span>}
+                  </div>
+                  <div style={styles.carteCode}>{type.code}</div>
+                  <Link to={`/types-equipement/${type.id}/points-controle`} style={styles.lienPrincipal}>
+                    Gérer les points de contrôle →
+                  </Link>
+                  <div style={styles.carteActions}>
+                    <button onClick={() => ouvrirEdition(type)} style={s.btnGhost}>Modifier</button>
+                    <button onClick={() => handleSupprimer(type)} style={s.btnDanger}>Supprimer</button>
+                  </div>
                 </div>
-                <Link to={`/types-equipement/${type.id}/points-controle`} style={styles.lienPrincipal}>
-                  Gérer les points de contrôle →
-                </Link>
-                <div style={{ marginTop: '0.5rem' }}>
-                  <button onClick={() => ouvrirEdition(type)} style={styles.boutonLien}>Modifier</button>
-                  <button onClick={() => handleSupprimer(type)} style={{ ...styles.boutonLien, color: '#c0392b' }}>Supprimer</button>
-                </div>
-              </div>
-            ))}
-            <button onClick={() => ouvrirCreation(famille.id)} style={styles.carteAjout}>
-              + Ajouter un type
-            </button>
-          </div>
-        </section>
+              ))}
+              <button onClick={() => ouvrirCreation(famille.id)} style={styles.carteAjout}>
+                + Ajouter un type
+              </button>
+            </div>
+          </section>
+        )
       ))}
 
       {modaleOuverte && (
         <Modal titre={typeEnEdition ? 'Modifier le type' : 'Nouveau type'} onFermer={() => setModaleOuverte(false)}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <label style={styles.label}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label style={s.label}>
               Famille
-              <select
-                value={formulaire.famille_id}
-                onChange={(e) => setFormulaire({ ...formulaire, famille_id: e.target.value })}
-                required
-                style={styles.input}
-              >
+              <select value={formulaire.famille_id} onChange={(e) => setFormulaire({ ...formulaire, famille_id: e.target.value })} required style={s.input}>
                 <option value="">— Choisir —</option>
-                {familles.map((f) => (
-                  <option key={f.id} value={f.id}>{f.libelle}</option>
-                ))}
+                {familles.map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}
               </select>
             </label>
-
-            <label style={styles.label}>
+            <label style={s.label}>
               Code (identifiant technique, ex. PONT_ROULANT)
-              <input value={formulaire.code}
-                onChange={(e) => setFormulaire({ ...formulaire, code: e.target.value.toUpperCase() })}
-                required style={styles.input} />
+              <input value={formulaire.code} onChange={(e) => setFormulaire({ ...formulaire, code: e.target.value.toUpperCase() })} required style={s.input} />
             </label>
-
-            <label style={styles.label}>
+            <label style={s.label}>
               Libellé
-              <input value={formulaire.libelle}
-                onChange={(e) => setFormulaire({ ...formulaire, libelle: e.target.value })}
-                required style={styles.input} />
+              <input value={formulaire.libelle} onChange={(e) => setFormulaire({ ...formulaire, libelle: e.target.value })} required style={s.input} />
             </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-              <input type="checkbox" checked={formulaire.actif}
-                onChange={(e) => setFormulaire({ ...formulaire, actif: e.target.checked })} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: theme.colors.textSecondary }}>
+              <input type="checkbox" checked={formulaire.actif} onChange={(e) => setFormulaire({ ...formulaire, actif: e.target.checked })} />
               Actif (visible dans l'app d'inspection)
             </label>
 
-            {erreurFormulaire && <p style={{ color: '#c0392b', fontSize: '0.85rem' }}>{erreurFormulaire}</p>}
+            {erreurFormulaire && <div style={styles.erreur}>{erreurFormulaire}</div>}
 
-            <button type="submit" disabled={envoiEnCours} style={styles.boutonPrincipal}>
-              {envoiEnCours ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button type="button" onClick={() => setModaleOuverte(false)} style={s.btnSecondary}>Annuler</button>
+              <button type="submit" disabled={envoiEnCours} style={s.btnPrimary}>
+                {envoiEnCours ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
           </form>
         </Modal>
       )}
@@ -176,16 +169,18 @@ export default function TypesEquipement() {
 }
 
 const styles = {
-  titreFamille: { fontSize: '1rem', color: '#444', margin: '0 0 0.5rem' },
-  grille: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' },
-  carte: { border: '1px solid #e2e2e2', borderRadius: 8, padding: '1rem', background: '#fff' },
+  titreFamille: { fontSize: '13px', fontWeight: 700, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 10px' },
+  grille: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px' },
+  carte: { background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.lg, padding: '18px', boxShadow: theme.shadow.sm },
+  carteEntete: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  carteTitre: { fontWeight: 700, fontSize: '14px', color: theme.colors.textPrimary },
+  badgeInactif: { fontSize: '10px', fontWeight: 700, color: theme.colors.textMuted, background: theme.colors.neutralSoft, padding: '2px 8px', borderRadius: theme.radius.pill },
+  carteCode: { fontSize: '12px', color: theme.colors.textMuted, marginTop: '2px', marginBottom: '14px', fontFamily: 'monospace' },
+  lienPrincipal: { fontSize: '13px', fontWeight: 600, color: theme.colors.accent },
+  carteActions: { marginTop: '14px', display: 'flex', gap: '4px' },
   carteAjout: {
-    border: '1px dashed #ccc', borderRadius: 8, background: 'transparent',
-    color: '#666', cursor: 'pointer', minHeight: 80,
+    border: `1.5px dashed ${theme.colors.borderStrong}`, borderRadius: theme.radius.lg, background: 'transparent',
+    color: theme.colors.textSecondary, cursor: 'pointer', minHeight: 110, fontSize: '13px', fontWeight: 600,
   },
-  lienPrincipal: { fontSize: '0.85rem' },
-  boutonLien: { border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline', marginRight: '0.75rem', fontSize: '0.8rem', padding: 0 },
-  boutonPrincipal: { padding: '0.5rem 1rem', borderRadius: 4, border: 'none', background: '#1a1a1a', color: '#fff', cursor: 'pointer' },
-  label: { display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' },
-  input: { padding: '0.5rem', borderRadius: 4, border: '1px solid #ccc' },
+  erreur: { background: theme.colors.dangerSoft, color: theme.colors.danger, padding: '10px 12px', borderRadius: theme.radius.md, fontSize: '13px', fontWeight: 600 },
 }

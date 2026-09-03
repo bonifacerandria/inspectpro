@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inspection;
 use App\Models\Rapport;
 use App\Services\RapportPdfService;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,6 +14,22 @@ class RapportController extends Controller
 {
     public function __construct(private RapportPdfService $rapportPdfService)
     {
+    }
+
+    /**
+     * GET /rapports
+     * Liste des rapports déjà générés, pour l'écran "Rapports".
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $rapports = Rapport::with(['inspection.equipement.site.client', 'inspection.equipement.typeEquipement'])
+            ->when($request->query('recherche'), function ($q, $recherche) {
+                $q->whereHas('inspection.equipement.site.client', fn ($q2) => $q2->where('nom', 'ilike', "%{$recherche}%"));
+            })
+            ->orderByDesc('genere_le')
+            ->paginate(20);
+
+        return response()->json($rapports);
     }
 
     /**
