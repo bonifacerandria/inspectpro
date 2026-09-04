@@ -4,12 +4,14 @@ import { useRessourceCrud } from '../hooks/useRessourceCrud'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import { theme, s } from '../styles/theme'
+import { useConfirm } from '../context/ConfirmContext'
 
 const CLIENT_VIDE = {
   nom: '', adresse: '', contact: '', telephone: '', email: '', reference_client: '',
 }
 
 export default function Clients() {
+  const confirmer = useConfirm()
   const { items: clients, chargement, erreur, creer, modifier, supprimer } = useRessourceCrud('/clients')
 
   const [modaleOuverte, setModaleOuverte] = useState(false)
@@ -52,7 +54,12 @@ export default function Clients() {
   }
 
   async function handleSupprimer(client) {
-    if (!confirm(`Supprimer le client "${client.nom}" ?`)) return
+    const ok = await confirmer({
+      titre: 'Supprimer ce client ?',
+      message: `"${client.nom}" sera définitivement supprimé. Cette action est irréversible.`,
+      libelleConfirmer: 'Supprimer',
+    })
+    if (!ok) return
     try {
       await supprimer(client.id)
     } catch (err) {

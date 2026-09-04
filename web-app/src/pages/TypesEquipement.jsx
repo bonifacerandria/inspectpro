@@ -4,10 +4,12 @@ import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import { theme, s } from '../styles/theme'
+import { useConfirm } from '../context/ConfirmContext'
 
 const TYPE_VIDE = { famille_id: '', code: '', libelle: '', icone: '', actif: true, ordre: 0 }
 
 export default function TypesEquipement() {
+  const confirmer = useConfirm()
   const [typesParFamille, setTypesParFamille] = useState({})
   const [familles, setFamilles] = useState([])
   const [chargement, setChargement] = useState(true)
@@ -73,7 +75,12 @@ export default function TypesEquipement() {
   }
 
   async function handleSupprimer(type) {
-    if (!confirm(`Supprimer le type "${type.libelle}" ?`)) return
+    const ok = await confirmer({
+      titre: 'Supprimer ce type ?',
+      message: `"${type.libelle}" et tous ses points de contrôle associés seront définitivement supprimés.`,
+      libelleConfirmer: 'Supprimer',
+    })
+    if (!ok) return
     try {
       await apiClient.delete(`/types-equipement/${type.id}`)
       await charger()

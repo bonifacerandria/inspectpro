@@ -12,11 +12,12 @@ class ClientController extends Controller
     public function index(Request $request): JsonResponse
     {
         $recherche = $request->query('recherche');
+        $parPage = min((int) $request->query('per_page', 20), 500);
 
         $clients = Client::withCount('sites')
             ->when($recherche, fn ($q) => $q->where('nom', 'ilike', "%{$recherche}%"))
             ->orderBy('nom')
-            ->paginate(20);
+            ->paginate($parPage);
 
         return response()->json($clients);
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
+import { useConfirm } from '../context/ConfirmContext'
 
 const TYPES_REPONSE = [
   { valeur: 'conforme_echelle', label: 'Échelle C / O / NC / DM / DI' },
@@ -22,6 +23,7 @@ const SECTION_VIDE = { code: '', libelle: '', ordre: 0 }
 
 export default function PointsControle() {
   const { typeId } = useParams()
+  const confirmer = useConfirm()
   const [formulaire, setFormulaire] = useState(null) // sortie de /types-equipement/{id}/formulaire
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState(null)
@@ -119,7 +121,12 @@ export default function PointsControle() {
   }
 
   async function supprimerPoint(point) {
-    if (!confirm(`Supprimer le point de contrôle "${point.libelle}" ?`)) return
+    const ok = await confirmer({
+      titre: 'Supprimer ce point de contrôle ?',
+      message: `"${point.libelle}" sera définitivement supprimé du formulaire.`,
+      libelleConfirmer: 'Supprimer',
+    })
+    if (!ok) return
     try {
       await apiClient.delete(`/points-controle/${point.id}`)
       await charger()

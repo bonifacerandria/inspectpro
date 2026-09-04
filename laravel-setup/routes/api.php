@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\{
     PhotoController,
     RapportController,
     StatistiqueController,
+    UserController,
 };
 
 /*
@@ -42,15 +43,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('equipements', EquipementController::class);
     Route::post('/equipements/{equipement}/ocr-plaque', [EquipementController::class, 'lireOcrPlaque']);
 
+    // --- Utilisateurs (admin uniquement, vérifié dans le contrôleur) ---
+    Route::apiResource('users', UserController::class)->except(['show']);
+
     // --- Configuration du moteur d'inspection (admin) ---
     Route::get('/familles-equipement', [FamilleEquipementController::class, 'index']);
-    Route::apiResource('types-equipement', TypeEquipementController::class);
-    Route::get('/types-equipement/{type}/formulaire', [TypeEquipementController::class, 'formulaireComplet']);
+    Route::apiResource('types-equipement', TypeEquipementController::class)
+        ->parameters(['types-equipement' => 'typeEquipement']);
+    // ⚠️ ->parameters(...) est indispensable ici : sans lui, Laravel déduit le nom
+    // de variable liée depuis l'URL ("types-equipement" -> "types_equipement"),
+    // qui ne correspond pas à $typeEquipement dans le contrôleur -> la liaison
+    // implicite échoue SILENCIEUSEMENT (aucune erreur), $typeEquipement vaut
+    // null, et l'erreur n'apparaît que plus loin (ex: TypeError sur un service
+    // qui attend un int). Même piège pour toute ressource au nom composé.
+    Route::get('/types-equipement/{typeEquipement}/formulaire', [TypeEquipementController::class, 'formulaireComplet']);
     // ^ endpoint clé : renvoie sections + points_controle + photos/documents/essais requis
     //   pour un type d'équipement donné -> c'est ce que web ET mobile consomment
     //   pour construire dynamiquement l'écran d'inspection.
-    Route::apiResource('sections-controle', SectionControleController::class)->except(['show']);
-    Route::apiResource('points-controle', PointControleController::class);
+    Route::apiResource('sections-controle', SectionControleController::class)
+        ->except(['show'])
+        ->parameters(['sections-controle' => 'sectionControle']);
+    Route::apiResource('points-controle', PointControleController::class)
+        ->parameters(['points-controle' => 'pointControle']);
 
     // --- Inspections ---
     Route::apiResource('inspections', InspectionController::class);

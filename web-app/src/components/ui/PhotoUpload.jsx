@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import apiClient from '../../api/client'
+import { useConfirm } from '../../context/ConfirmContext'
 
 /**
  * Zone d'upload + galerie miniature réutilisable, branchée sur l'endpoint
@@ -16,6 +17,7 @@ export default function PhotoUpload({
   onChange,
 }) {
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
+  const confirmer = useConfirm()
 
   async function handleFichier(e) {
     const fichier = e.target.files?.[0]
@@ -43,7 +45,12 @@ export default function PhotoUpload({
   }
 
   async function handleSupprimer(photo) {
-    if (!confirm('Supprimer cette photo ?')) return
+    const ok = await confirmer({
+      titre: 'Supprimer cette photo ?',
+      message: 'Cette photo sera définitivement supprimée.',
+      libelleConfirmer: 'Supprimer',
+    })
+    if (!ok) return
     try {
       await apiClient.delete(`/photos/${photo.id}`)
       onChange?.(photos.filter((p) => p.id !== photo.id))

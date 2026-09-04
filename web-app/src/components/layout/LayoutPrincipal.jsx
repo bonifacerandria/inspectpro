@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../context/authStore'
 import { theme } from '../../styles/theme'
@@ -12,6 +13,11 @@ const MENU = [
   { to: '/statistiques', label: 'Statistiques', icon: '📊' },
 ]
 
+const SOUS_MENU_PARAMETRES = [
+  { to: '/parametres/sites', label: 'Gestion des sites' },
+  { to: '/parametres/utilisateurs', label: 'Gestion des utilisateurs' },
+]
+
 const TITRES = {
   '/': 'Tableau de bord',
   '/inspections': 'Inspections',
@@ -20,6 +26,8 @@ const TITRES = {
   '/equipements': 'Équipements',
   '/types-equipement': "Types d'équipement",
   '/statistiques': 'Statistiques',
+  '/parametres/sites': 'Gestion des sites',
+  '/parametres/utilisateurs': 'Gestion des utilisateurs',
 }
 
 export default function LayoutPrincipal() {
@@ -28,6 +36,8 @@ export default function LayoutPrincipal() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const [parametresOuvert, setParametresOuvert] = useState(location.pathname.startsWith('/parametres'))
+
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
@@ -35,6 +45,7 @@ export default function LayoutPrincipal() {
 
   const titre = TITRES[location.pathname] || 'InspectPro'
   const initiales = (user?.nom || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+  const dansParametres = location.pathname.startsWith('/parametres')
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: theme.colors.bgPage }}>
@@ -61,6 +72,39 @@ export default function LayoutPrincipal() {
               {item.label}
             </NavLink>
           ))}
+
+          {/* Paramètres — menu déroulant */}
+          <button
+            onClick={() => setParametresOuvert((v) => !v)}
+            style={{
+              ...styles.navItem, width: '100%', border: 'none', cursor: 'pointer',
+              background: dansParametres ? 'rgba(37,99,235,0.18)' : 'transparent',
+              color: dansParametres ? '#fff' : theme.colors.textOnDarkMuted,
+              borderLeft: dansParametres ? `3px solid ${theme.colors.accent}` : '3px solid transparent',
+            }}
+          >
+            <span style={{ fontSize: '16px', width: 20, textAlign: 'center' }}>⚙️</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>Paramètres</span>
+            <span style={{ fontSize: '11px', transform: parametresOuvert ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>▶</span>
+          </button>
+
+          {parametresOuvert && (
+            <div style={styles.sousMenu}>
+              {SOUS_MENU_PARAMETRES.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  style={({ isActive }) => ({
+                    ...styles.sousMenuItem,
+                    color: isActive ? '#fff' : theme.colors.textOnDarkMuted,
+                    fontWeight: isActive ? 700 : 500,
+                  })}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
 
         <div style={styles.userBox}>
@@ -101,6 +145,8 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
     borderRadius: theme.radius.md, fontSize: '14px', fontWeight: 600, transition: 'all 0.15s ease',
   },
+  sousMenu: { display: 'flex', flexDirection: 'column', paddingLeft: '32px', gap: '2px', marginBottom: '4px' },
+  sousMenuItem: { padding: '8px 12px', fontSize: '13px', borderRadius: theme.radius.sm },
   userBox: {
     display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 20px',
     borderTop: '1px solid rgba(255,255,255,0.08)',
@@ -112,14 +158,10 @@ const styles = {
   },
   userName: { color: '#fff', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   userRole: { color: theme.colors.textOnDarkMuted, fontSize: '11px' },
-  logoutBtn: {
-    border: 'none', background: 'transparent', color: theme.colors.textOnDarkMuted,
-    cursor: 'pointer', fontSize: '16px', padding: '4px',
-  },
+  logoutBtn: { border: 'none', background: 'transparent', color: theme.colors.textOnDarkMuted, cursor: 'pointer', fontSize: '16px', padding: '4px' },
   topbar: {
-    height: 64, flexShrink: 0, background: theme.colors.surface,
-    borderBottom: `1px solid ${theme.colors.border}`, display: 'flex',
-    alignItems: 'center', padding: '0 32px', position: 'sticky', top: 0, zIndex: 10,
+    height: 64, flexShrink: 0, background: theme.colors.surface, borderBottom: `1px solid ${theme.colors.border}`,
+    display: 'flex', alignItems: 'center', padding: '0 32px', position: 'sticky', top: 0, zIndex: 10,
   },
   topbarTitle: { fontSize: '17px', fontWeight: 700, color: theme.colors.textPrimary, margin: 0 },
   content: { flex: 1, padding: '28px 32px' },

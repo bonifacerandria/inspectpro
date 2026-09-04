@@ -4,6 +4,7 @@ import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import { theme, s } from '../styles/theme'
+import { useConfirm } from '../context/ConfirmContext'
 
 const IDENTIFICATION_VIDE = {
   marque: '', modele: '', numero_serie: '', numero_equipement: '',
@@ -21,6 +22,7 @@ const LIBELLES_CHAMPS_SUPPL = {
 
 export default function Equipements() {
   const navigate = useNavigate()
+  const confirmer = useConfirm()
   const [equipements, setEquipements] = useState([])
   const [sites, setSites] = useState([])
   const [typesParFamille, setTypesParFamille] = useState({})
@@ -93,7 +95,12 @@ export default function Equipements() {
   }
 
   async function handleSupprimer(equipement) {
-    if (!confirm(`Supprimer cet équipement (${equipement.numero_serie || equipement.id}) ?`)) return
+    const ok = await confirmer({
+      titre: 'Supprimer cet équipement ?',
+      message: `L'équipement ${equipement.numero_serie ? `n° ${equipement.numero_serie}` : `#${equipement.id}`} sera définitivement supprimé.`,
+      libelleConfirmer: 'Supprimer',
+    })
+    if (!ok) return
     try {
       await apiClient.delete(`/equipements/${equipement.id}`)
       await charger()

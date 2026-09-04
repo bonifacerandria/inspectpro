@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import PhotoUpload from '../components/ui/PhotoUpload'
+import { useConfirm } from '../context/ConfirmContext'
 
 const OPTIONS_ECHELLE = [
   { code: 'C', label: 'C', couleur: '#2e7d32' },
@@ -16,6 +17,7 @@ export default function InspectionDetail() {
   const { inspectionId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const confirmer = useConfirm()
 
   const [inspection, setInspection] = useState(null)
   const [formulaire, setFormulaire] = useState(null)
@@ -112,7 +114,13 @@ export default function InspectionDetail() {
   }
 
   async function handleValider() {
-    if (!confirm('Valider définitivement cette inspection ? Elle ne sera plus modifiable ensuite.')) return
+    const ok = await confirmer({
+      titre: "Valider l'inspection ?",
+      message: 'Une fois validée, cette inspection ne sera plus modifiable.',
+      libelleConfirmer: 'Valider',
+      danger: false,
+    })
+    if (!ok) return
     setValidationEnCours(true)
     try {
       await apiClient.post(`/inspections/${inspectionId}/valider`, { conclusion })
@@ -120,9 +128,11 @@ export default function InspectionDetail() {
     } catch (err) {
       const manquantes = err.response?.data?.photos_manquantes
       if (manquantes?.length) {
-        const forcer = confirm(
-          `Photo(s) obligatoire(s) manquante(s) : ${manquantes.join(', ')}.\n\nValider quand même ?`
-        )
+        const forcer = await confirmer({
+          titre: 'Photos obligatoires manquantes',
+          message: `Manquantes : ${manquantes.join(', ')}. Valider quand même ?`,
+          libelleConfirmer: 'Valider quand même',
+        })
         if (forcer) {
           await apiClient.post(`/inspections/${inspectionId}/valider`, {
             conclusion, ignorer_photos_manquantes: true,
