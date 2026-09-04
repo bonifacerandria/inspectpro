@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PointControle extends Model
 {
+    protected $table = 'points_controle';
+
     protected $fillable = [
         'type_equipement_id', 'section_id', 'code', 'libelle', 'type_reponse',
         'options', 'unite_mesure', 'valeur_nominale', 'tolerance_pourcent',

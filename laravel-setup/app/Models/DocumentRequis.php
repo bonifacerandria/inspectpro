@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DocumentRequis extends Model
 {
+    protected $table = 'documents_requis';
+
     public $timestamps = false;
 
     protected $fillable = ['type_equipement_id', 'libelle', 'obligatoire', 'ordre'];

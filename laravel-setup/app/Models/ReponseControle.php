@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ReponseControle extends Model
 {
+    protected $table = 'reponses_controle';
+
     protected $fillable = [
         'inspection_id', 'point_controle_id', 'statut', 'valeur_texte',
         'valeur_nombre', 'valeur_choix', 'commentaire',

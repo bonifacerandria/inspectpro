@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SectionControle extends Model
 {
+    protected $table = 'sections_controle';
+
     public $timestamps = false;
 
     protected $fillable = ['type_equipement_id', 'code', 'libelle', 'ordre'];

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PhotoObligatoire extends Model
 {
+    protected $table = 'photos_obligatoires';
+
     public $timestamps = false;
 
     protected $fillable = ['type_equipement_id', 'libelle', 'ordre'];

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EssaiRequis extends Model
 {
+    protected $table = 'essais_requis';
+
     public $timestamps = false;
 
     protected $fillable = ['type_equipement_id', 'libelle', 'necessite_charge', 'ordre'];
