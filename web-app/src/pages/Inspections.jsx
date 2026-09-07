@@ -3,28 +3,33 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../api/client'
 import { theme, s, STATUT_INSPECTION } from '../styles/theme'
 import Badge from '../components/ui/Badge'
-import EmptyState from '../components/ui/EmptyState'
+import DataTable from '../components/ui/DataTable'
+import Modal from '../components/ui/Modal'
+import { formatDate } from '../utils/date'
 
-const FILTRES_STATUT = [
-  { value: '', label: 'Tous les statuts' },
-  { value: 'en_cours', label: 'En cours' },
-  { value: 'terminee', label: 'Terminée' },
-  { value: 'validee', label: 'Validée' },
-  { value: 'archivee', label: 'Archivée' },
-]
+const OPTIONS_STATUT = Object.entries(STATUT_INSPECTION).map(([value, v]) => ({ value, label: v.label }))
 
 export default function Inspections() {
   const navigate = useNavigate()
   const [inspections, setInspections] = useState([])
-  const [statutFiltre, setStatutFiltre] = useState('')
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState(null)
 
-  async function charger(statut) {
+  // --- Modale "Nouvelle inspection" (sélection client -> site -> équipement) ---
+  const [modaleOuverte, setModaleOuverte] = useState(false)
+  const [clients, setClients] = useState([])
+  const [sites, setSites] = useState([])
+  const [equipements, setEquipements] = useState([])
+  const [clientId, setClientId] = useState('')
+  const [siteId, setSiteId] = useState('')
+  const [equipementId, setEquipementId] = useState('')
+  const [chargementModale, setChargementModale] = useState(false)
+
+  async function charger() {
     setChargement(true)
     setErreur(null)
     try {
-      const { data } = await apiClient.get('/inspections', { params: statut ? { statut } : {} })
+      const { data } = await apiClient.get('/inspections')
       setInspections(data.data ?? data)
     } catch {
       setErreur('Erreur de chargement des inspections.')
@@ -33,15 +38,79 @@ export default function Inspections() {
     }
   }
 
-  useEffect(() => { charger(statutFiltre) }, [statutFiltre])
+  useEffect(() => { charger() }, [])
+
+  async function ouvrirModaleCreation() {
+    setClientId(''); setSiteId(''); setEquipementId('')
+    setSites([]); setEquipements([])
+    setModaleOuverte(true)
+    if (clients.length === 0) {
+      const { data } = await apiClient.get('/clients', { params: { per_page: 500 } })
+      setClients(data.data ?? data)
+    }
+  }
+
+  async function handleChangerClient(id) {
+    setClientId(id); setSiteId(''); setEquipementId(''); setEquipements([])
+    if (!id) { setSites([]); return }
+    setChargementModale(true)
+    const { data } = await apiClient.get('/sites', { params: { client_id: id } })
+    setSites(data)
+    setChargementModale(false)
+  }
+
+  async function handleChangerSite(id) {
+    setSiteId(id); setEquipementId('')
+    if (!id) { setEquipements([]); return }
+    setChargementModale(true)
+    const { data } = await apiClient.get('/equipements', { params: { site_id: id, per_page: 200 } })
+    setEquipements(data.data ?? data)
+    setChargementModale(false)
+  }
+
+  function demarrerInspection() {
+    navigate(`/inspections/nouvelle?equipement_id=${equipementId}`)
+  }
+
+  const colonnes = [
+    {
+      key: 'equipement', label: 'Équipement', filterType: 'text',
+      accessor: (r) => r.equipement?.type_equipement?.libelle,
+      render: (r) => <span style={{ fontWeight: 600 }}>{r.equipement?.type_equipement?.libelle}</span>,
+    },
+    {
+      key: 'client', label: 'Client / Site', filterType: 'text',
+      accessor: (r) => `${r.equipement?.site?.client?.nom} ${r.equipement?.site?.nom}`,
+      render: (r) => <>{r.equipement?.site?.client?.nom} — {r.equipement?.site?.nom}</>,
+    },
+    {
+      key: 'inspecteur', label: 'Inspecteur', filterType: 'text',
+      accessor: (r) => r.inspecteur?.nom,
+    },
+    {
+      key: 'date_inspection', label: 'Date', filterable: false,
+      render: (r) => formatDate(r.date_inspection),
+    },
+    {
+      key: 'avis_propose', label: 'Avis', filterable: false,
+      render: (r) => (
+        <span style={{ fontSize: '12px', color: theme.colors.textSecondary }}>{r.avis_propose || ''}</span>
+      ),
+    },
+    {
+      key: 'statut', label: 'Statut', filterType: 'select', filterOptions: OPTIONS_STATUT,
+      render: (r) => {
+        const st = STATUT_INSPECTION[r.statut] || STATUT_INSPECTION.en_cours
+        return <Badge variant={st.variant}>{st.label}</Badge>
+      },
+    },
+  ]
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-        <p style={s.pageSubtitle}>{inspections.length} inspection(s)</p>
-        <select value={statutFiltre} onChange={(e) => setStatutFiltre(e.target.value)} style={{ ...s.input, width: 200 }}>
-          {FILTRES_STATUT.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
+        <p style={s.pageSubtitle}>{inspections.length} inspection(s) — clique sur un en-tête pour trier, filtre sous chaque colonne</p>
+        <button onClick={ouvrirModaleCreation} style={s.btnPrimary}>+ Nouvelle inspection</button>
       </div>
 
       <div style={s.card}>
@@ -49,44 +118,62 @@ export default function Inspections() {
           <p>Chargement…</p>
         ) : erreur ? (
           <p style={{ color: theme.colors.danger }}>{erreur}</p>
-        ) : inspections.length === 0 ? (
-          <EmptyState
-            icon="🔍"
-            title="Aucune inspection"
-            description="Crée une inspection depuis la fiche d'un équipement pour la voir apparaître ici."
-          />
         ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Équipement</th>
-                <th style={s.th}>Client / Site</th>
-                <th style={s.th}>Inspecteur</th>
-                <th style={s.th}>Date</th>
-                <th style={s.th}>Avis</th>
-                <th style={s.th}>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inspections.map((insp) => {
-                const statut = STATUT_INSPECTION[insp.statut] || STATUT_INSPECTION.en_cours
-                return (
-                  <tr key={insp.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/inspections/${insp.id}`)}>
-                    <td style={s.td}>{insp.equipement?.type_equipement?.libelle}</td>
-                    <td style={s.td}>{insp.equipement?.site?.client?.nom} — {insp.equipement?.site?.nom}</td>
-                    <td style={s.td}>{insp.inspecteur?.nom}</td>
-                    <td style={s.td}>{insp.date_inspection}</td>
-                    <td style={{ ...s.td, maxWidth: 260, fontSize: '12px', color: theme.colors.textSecondary }}>
-                      {insp.avis_propose || '—'}
-                    </td>
-                    <td style={s.td}><Badge variant={statut.variant}>{statut.label}</Badge></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={colonnes}
+            rows={inspections}
+            onRowClick={(insp) => navigate(`/inspections/${insp.id}`)}
+            texteVide="Aucune inspection — crée-en une avec le bouton ci-dessus."
+          />
         )}
       </div>
+
+      {modaleOuverte && (
+        <Modal titre="Nouvelle inspection" onFermer={() => setModaleOuverte(false)} width={480}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label style={s.label}>
+              Client
+              <select value={clientId} onChange={(e) => handleChangerClient(e.target.value)} style={s.input}>
+                <option value="">— Choisir un client —</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+              </select>
+            </label>
+
+            <label style={s.label}>
+              Site
+              <select value={siteId} onChange={(e) => handleChangerSite(e.target.value)} disabled={!clientId} style={s.input}>
+                <option value="">— Choisir un site —</option>
+                {sites.map((st) => <option key={st.id} value={st.id}>{st.nom}</option>)}
+              </select>
+            </label>
+
+            <label style={s.label}>
+              Équipement
+              <select value={equipementId} onChange={(e) => setEquipementId(e.target.value)} disabled={!siteId} style={s.input}>
+                <option value="">— Choisir un équipement —</option>
+                {equipements.map((eq) => (
+                  <option key={eq.id} value={eq.id}>
+                    {eq.type_equipement?.libelle} {eq.numero_serie ? `(${eq.numero_serie})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {siteId && equipements.length === 0 && !chargementModale && (
+              <p style={{ fontSize: '13px', color: theme.colors.textMuted }}>
+                Aucun équipement sur ce site. Ajoute-en un depuis le menu Équipements.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+              <button type="button" onClick={() => setModaleOuverte(false)} style={s.btnSecondary}>Annuler</button>
+              <button type="button" onClick={demarrerInspection} disabled={!equipementId} style={s.btnPrimary}>
+                Démarrer l'inspection
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

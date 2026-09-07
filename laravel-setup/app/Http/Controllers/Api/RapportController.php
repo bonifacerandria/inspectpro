@@ -22,12 +22,14 @@ class RapportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $parPage = min((int) $request->query('per_page', 20), 500);
+
         $rapports = Rapport::with(['inspection.equipement.site.client', 'inspection.equipement.typeEquipement'])
             ->when($request->query('recherche'), function ($q, $recherche) {
                 $q->whereHas('inspection.equipement.site.client', fn ($q2) => $q2->where('nom', 'ilike', "%{$recherche}%"));
             })
             ->orderByDesc('genere_le')
-            ->paginate(20);
+            ->paginate($parPage);
 
         return response()->json($rapports);
     }

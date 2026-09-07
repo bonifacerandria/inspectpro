@@ -89,7 +89,7 @@ class InspectionController extends Controller
      */
     public function valider(Request $request, Inspection $inspection): JsonResponse
     {
-        if (! $inspection->estModifiable()) {
+        if (! in_array($inspection->statut, ['en_cours', 'terminee'], true)) {
             return response()->json(['message' => 'Cette inspection a déjà été validée.'], 422);
         }
 
@@ -119,6 +119,39 @@ class InspectionController extends Controller
             'conclusion' => $donnees['conclusion'] ?? $inspection->avis_propose,
             'date_validation' => now(),
         ]);
+
+        return response()->json($inspection);
+    }
+
+    /**
+     * PATCH /inspections/{inspection}/statut
+     * Gère les transitions "terminée" et "archivée" du cycle de vie d'une
+     * inspection. La transition vers "validée" reste exclusivement gérée
+     * par valider() ci-dessus (elle a des règles métier propres : synthèse,
+     * photos obligatoires, conclusion).
+     *
+     * Transitions autorisées :
+     *   en_cours            -> terminee   (l'inspecteur a fini la saisie terrain)
+     *   terminee | validee  -> archivee   (rangement, hors des listes actives)
+     */
+    public function changerStatut(Request $request, Inspection $inspection): JsonResponse
+    {
+        $donnees = $request->validate([
+            'statut' => 'required|in:terminee,archivee',
+        ]);
+
+        $transitionsAutorisees = [
+            'terminee' => ['en_cours'],
+            'archivee' => ['terminee', 'validee'],
+        ];
+
+        if (! in_array($inspection->statut, $transitionsAutorisees[$donnees['statut']], true)) {
+            return response()->json([
+                'message' => "Transition invalide : impossible de passer de \"{$inspection->statut}\" à \"{$donnees['statut']}\".",
+            ], 422);
+        }
+
+        $inspection->update(['statut' => $donnees['statut']]);
 
         return response()->json($inspection);
     }

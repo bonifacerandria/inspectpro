@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useRessourceCrud } from '../hooks/useRessourceCrud'
 import Modal from '../components/ui/Modal'
-import EmptyState from '../components/ui/EmptyState'
+import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
 import { useConfirm } from '../context/ConfirmContext'
 
@@ -67,6 +66,25 @@ export default function Clients() {
     }
   }
 
+  const colonnes = [
+    { key: 'nom', label: 'Nom', render: (c) => <span style={{ fontWeight: 600 }}>{c.nom}</span> },
+    { key: 'contact', label: 'Contact' },
+    { key: 'telephone', label: 'Téléphone' },
+    {
+      key: 'sites_count', label: 'Sites', filterable: false,
+      render: (c) => <span>{c.sites_count ?? 0}</span>,
+    },
+    {
+      key: 'actions', label: '', sortable: false, filterable: false, align: 'right',
+      render: (client) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => ouvrirEdition(client)} style={s.btnGhost}>Modifier</button>
+          <button onClick={() => handleSupprimer(client)} style={s.btnDanger}>Supprimer</button>
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
@@ -79,43 +97,8 @@ export default function Clients() {
           <p>Chargement…</p>
         ) : erreur ? (
           <p style={{ color: theme.colors.danger }}>{erreur}</p>
-        ) : clients.length === 0 ? (
-          <EmptyState
-            icon="🏢"
-            title="Aucun client"
-            description="Ajoute ton premier client pour commencer à créer des sites et des équipements."
-            action={<button onClick={ouvrirCreation} style={s.btnPrimary}>+ Nouveau client</button>}
-          />
         ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Nom</th>
-                <th style={s.th}>Contact</th>
-                <th style={s.th}>Téléphone</th>
-                <th style={s.th}>Sites</th>
-                <th style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((client) => (
-                <tr key={client.id}>
-                  <td style={{ ...s.td, fontWeight: 600 }}>{client.nom}</td>
-                  <td style={s.td}>{client.contact || '—'}</td>
-                  <td style={s.td}>{client.telephone || '—'}</td>
-                  <td style={s.td}>
-                    <Link to={`/clients/${client.id}/sites`} style={{ color: theme.colors.accent, fontWeight: 600 }}>
-                      {client.sites_count ?? 0} site(s)
-                    </Link>
-                  </td>
-                  <td style={{ ...s.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => ouvrirEdition(client)} style={s.btnGhost}>Modifier</button>
-                    <button onClick={() => handleSupprimer(client)} style={s.btnDanger}>Supprimer</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable columns={colonnes} rows={clients} texteVide="Aucun client — ajoute-en un avec le bouton ci-dessus." />
         )}
       </div>
 
@@ -156,8 +139,5 @@ function Champ({ label, value, onChange, type = 'text', requis = false }) {
 }
 
 const styles = {
-  erreur: {
-    background: theme.colors.dangerSoft, color: theme.colors.danger,
-    padding: '10px 12px', borderRadius: theme.radius.md, fontSize: '13px', fontWeight: 600,
-  },
+  erreur: { background: theme.colors.dangerSoft, color: theme.colors.danger, padding: '10px 12px', borderRadius: theme.radius.md, fontSize: '13px', fontWeight: 600 },
 }

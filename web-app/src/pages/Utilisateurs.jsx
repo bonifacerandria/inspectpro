@@ -3,6 +3,7 @@ import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
+import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
 import { useAuthStore } from '../context/authStore'
 import { useConfirm } from '../context/ConfirmContext'
@@ -92,6 +93,31 @@ export default function Utilisateurs() {
   if (chargement) return <p>Chargement…</p>
   if (erreur) return <p style={{ color: theme.colors.danger }}>{erreur}</p>
 
+  const colonnesUsers = [
+    { key: 'nom', label: 'Nom', render: (u) => <span style={{ fontWeight: 600 }}>{u.nom}</span> },
+    { key: 'email', label: 'Email' },
+    {
+      key: 'role', label: 'Rôle', filterType: 'select',
+      filterOptions: [{ value: 'admin', label: 'Administrateur' }, { value: 'inspecteur', label: 'Inspecteur' }],
+      render: (u) => <Badge variant={u.role === 'admin' ? 'accent' : 'neutral'}>{u.role === 'admin' ? 'Administrateur' : 'Inspecteur'}</Badge>,
+    },
+    {
+      key: 'actif', label: 'Statut', filterType: 'select',
+      accessor: (u) => (u.actif ? '1' : '0'),
+      filterOptions: [{ value: '1', label: 'Actif' }, { value: '0', label: 'Désactivé' }],
+      render: (u) => <Badge variant={u.actif ? 'success' : 'neutral'}>{u.actif ? 'Actif' : 'Désactivé'}</Badge>,
+    },
+    {
+      key: 'actions', label: '', sortable: false, filterable: false, align: 'right',
+      render: (u) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => ouvrirEdition(u)} style={s.btnGhost}>Modifier</button>
+          {u.id !== moi?.id && <button onClick={() => handleSupprimer(u)} style={s.btnDanger}>Supprimer</button>}
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '18px' }}>
@@ -99,37 +125,7 @@ export default function Utilisateurs() {
       </div>
 
       <div style={s.card}>
-        {users.length === 0 ? (
-          <EmptyState icon="👤" title="Aucun utilisateur" />
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Nom</th>
-                <th style={s.th}>Email</th>
-                <th style={s.th}>Rôle</th>
-                <th style={s.th}>Statut</th>
-                <th style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td style={{ ...s.td, fontWeight: 600 }}>{u.nom}</td>
-                  <td style={s.td}>{u.email}</td>
-                  <td style={s.td}><Badge variant={u.role === 'admin' ? 'accent' : 'neutral'}>{u.role === 'admin' ? 'Administrateur' : 'Inspecteur'}</Badge></td>
-                  <td style={s.td}><Badge variant={u.actif ? 'success' : 'neutral'}>{u.actif ? 'Actif' : 'Désactivé'}</Badge></td>
-                  <td style={{ ...s.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => ouvrirEdition(u)} style={s.btnGhost}>Modifier</button>
-                    {u.id !== moi?.id && (
-                      <button onClick={() => handleSupprimer(u)} style={s.btnDanger}>Supprimer</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <DataTable columns={colonnesUsers} rows={users} texteVide="Aucun utilisateur." />
       </div>
 
       {modaleOuverte && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
+import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
 import { useConfirm } from '../context/ConfirmContext'
 
@@ -92,6 +93,21 @@ export default function Sites() {
   if (chargement) return <p>Chargement…</p>
   if (erreur) return <p style={{ color: theme.colors.danger }}>{erreur}</p>
 
+  const colonnesSites = [
+    { key: 'nom', label: 'Nom du site', render: (site) => <span style={{ fontWeight: 600 }}>{site.nom}</span> },
+    { key: 'client', label: 'Client', accessor: (site) => site.client?.nom },
+    { key: 'adresse', label: 'Adresse' },
+    {
+      key: 'actions', label: '', sortable: false, filterable: false, align: 'right',
+      render: (site) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => ouvrirEdition(site)} style={s.btnGhost}>Modifier</button>
+          <button onClick={() => handleSupprimer(site)} style={s.btnDanger}>Supprimer</button>
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', gap: '12px' }}>
@@ -103,38 +119,7 @@ export default function Sites() {
       </div>
 
       <div style={s.card}>
-        {sitesAffiches.length === 0 ? (
-          <EmptyState
-            icon="📍"
-            title="Aucun site"
-            description="Un équipement doit être rattaché à un site. Crée ton premier site pour pouvoir ensuite ajouter des équipements."
-            action={<button onClick={ouvrirCreation} style={s.btnPrimary}>+ Nouveau site</button>}
-          />
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Nom du site</th>
-                <th style={s.th}>Client</th>
-                <th style={s.th}>Adresse</th>
-                <th style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sitesAffiches.map((site) => (
-                <tr key={site.id}>
-                  <td style={{ ...s.td, fontWeight: 600 }}>{site.nom}</td>
-                  <td style={s.td}>{site.client?.nom}</td>
-                  <td style={s.td}>{site.adresse || '—'}</td>
-                  <td style={{ ...s.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => ouvrirEdition(site)} style={s.btnGhost}>Modifier</button>
-                    <button onClick={() => handleSupprimer(site)} style={s.btnDanger}>Supprimer</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <DataTable columns={colonnesSites} rows={sitesAffiches} texteVide="Aucun site — crée-en un avec le bouton ci-dessus." />
       </div>
 
       {modaleOuverte && (

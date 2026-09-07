@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('inspections', InspectionController::class);
     Route::post('/inspections/{inspection}/reponses', [ReponseControleController::class, 'store']);
     Route::post('/inspections/{inspection}/valider', [InspectionController::class, 'valider']);
+    Route::patch('/inspections/{inspection}/statut', [InspectionController::class, 'changerStatut']);
     Route::get('/inspections/{inspection}/synthese', [InspectionController::class, 'synthese']);
 
     // --- Anomalies & photos ---

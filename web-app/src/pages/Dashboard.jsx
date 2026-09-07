@@ -5,6 +5,7 @@ import { theme, s, STATUT_INSPECTION } from '../styles/theme'
 import StatCard from '../components/ui/StatCard'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
+import { formatDate } from '../utils/date'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -102,7 +103,7 @@ export default function Dashboard() {
                     <td style={s.td}>{insp.equipement?.type_equipement?.libelle}</td>
                     <td style={s.td}>{insp.equipement?.site?.client?.nom}</td>
                     <td style={s.td}>{insp.inspecteur?.nom}</td>
-                    <td style={s.td}>{insp.date_inspection}</td>
+                    <td style={s.td}>{formatDate(insp.date_inspection)}</td>
                     <td style={s.td}><Badge variant={statut.variant}>{statut.label}</Badge></td>
                   </tr>
                 )

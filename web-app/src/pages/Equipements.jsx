@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
+import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
 import { useConfirm } from '../context/ConfirmContext'
+import { formatDate } from '../utils/date'
 
 const IDENTIFICATION_VIDE = {
   marque: '', modele: '', numero_serie: '', numero_equipement: '',
@@ -115,6 +117,23 @@ export default function Equipements() {
   if (chargement) return <p>Chargement…</p>
   if (erreur) return <p style={{ color: theme.colors.danger }}>{erreur}</p>
 
+  const colonnesEquipements = [
+    { key: 'type', label: 'Type', accessor: (eq) => eq.type_equipement?.libelle, render: (eq) => <span style={{ fontWeight: 600 }}>{eq.type_equipement?.libelle}</span> },
+    { key: 'client_site', label: 'Client / Site', accessor: (eq) => `${eq.site?.client?.nom} ${eq.site?.nom}`, render: (eq) => <>{eq.site?.client?.nom} — {eq.site?.nom}</> },
+    { key: 'marque_modele', label: 'Marque / Modèle', accessor: (eq) => [eq.marque, eq.modele].filter(Boolean).join(' '), render: (eq) => [eq.marque, eq.modele].filter(Boolean).join(' ') || '—' },
+    { key: 'numero_serie', label: 'N° série' },
+    { key: 'derniere_inspection', label: 'Dernière inspection', filterable: false, render: (eq) => eq.derniere_inspection ? formatDate(eq.derniere_inspection.date_inspection) : 'Aucune' },
+    {
+      key: 'actions', label: '', sortable: false, filterable: false, align: 'right',
+      render: (eq) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => navigate(`/inspections/nouvelle?equipement_id=${eq.id}`)} style={s.btnGhost}>Nouvelle inspection</button>
+          <button onClick={() => handleSupprimer(eq)} style={s.btnDanger}>Supprimer</button>
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
@@ -123,44 +142,11 @@ export default function Equipements() {
       </div>
 
       <div style={s.card}>
-        {equipements.length === 0 ? (
-          <EmptyState
-            icon="⚙️"
-            title="Aucun équipement"
-            description="Ajoute ton premier équipement pour pouvoir lancer une inspection."
-            action={<button onClick={ouvrirCreation} style={s.btnPrimary}>+ Nouvel équipement</button>}
-          />
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>Type</th>
-                <th style={s.th}>Client / Site</th>
-                <th style={s.th}>Marque / Modèle</th>
-                <th style={s.th}>N° série</th>
-                <th style={s.th}>Dernière inspection</th>
-                <th style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {equipements.map((eq) => (
-                <tr key={eq.id}>
-                  <td style={{ ...s.td, fontWeight: 600 }}>{eq.type_equipement?.libelle}</td>
-                  <td style={s.td}>{eq.site?.client?.nom} — {eq.site?.nom}</td>
-                  <td style={s.td}>{[eq.marque, eq.modele].filter(Boolean).join(' ') || '—'}</td>
-                  <td style={s.td}>{eq.numero_serie || '—'}</td>
-                  <td style={s.td}>{eq.derniere_inspection?.date_inspection || 'Aucune'}</td>
-                  <td style={{ ...s.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button onClick={() => navigate(`/inspections/nouvelle?equipement_id=${eq.id}`)} style={s.btnGhost}>
-                      Nouvelle inspection
-                    </button>
-                    <button onClick={() => handleSupprimer(eq)} style={s.btnDanger}>Supprimer</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <DataTable
+          columns={colonnesEquipements}
+          rows={equipements}
+          texteVide="Aucun équipement — ajoute-en un avec le bouton ci-dessus."
+        />
       </div>
 
       {modaleOuverte && etape === 1 && (

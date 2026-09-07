@@ -3,6 +3,9 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import PhotoUpload from '../components/ui/PhotoUpload'
 import { useConfirm } from '../context/ConfirmContext'
+import Badge from '../components/ui/Badge'
+import { theme, STATUT_INSPECTION } from '../styles/theme'
+import { formatDate } from '../utils/date'
 
 const OPTIONS_ECHELLE = [
   { code: 'C', label: 'C', couleur: '#2e7d32' },
@@ -28,6 +31,7 @@ export default function InspectionDetail() {
   const [erreur, setErreur] = useState(null)
   const [conclusion, setConclusion] = useState('')
   const [validationEnCours, setValidationEnCours] = useState(false)
+  const [changementStatutEnCours, setChangementStatutEnCours] = useState(false)
   const [genererPdfEnCours, setGenererPdfEnCours] = useState(false)
 
   const estNouvelle = inspectionId === 'nouvelle'
@@ -147,6 +151,26 @@ export default function InspectionDetail() {
     }
   }
 
+  async function handleChangerStatut(nouveauStatut) {
+    const libelles = {
+      terminee: { titre: "Marquer l'inspection comme terminée ?", message: 'La saisie des points de contrôle sera verrouillée. Tu pourras ensuite la valider.', bouton: 'Marquer comme terminée' },
+      archivee: { titre: "Archiver l'inspection ?", message: "L'inspection sera rangée hors des listes actives. Cette action reste réversible en base si besoin, mais aucun écran ne permet de désarchiver pour l'instant.", bouton: 'Archiver' },
+    }
+    const conf = libelles[nouveauStatut]
+    const ok = await confirmer({ titre: conf.titre, message: conf.message, libelleConfirmer: conf.bouton, danger: false })
+    if (!ok) return
+
+    setChangementStatutEnCours(true)
+    try {
+      await apiClient.patch(`/inspections/${inspectionId}/statut`, { statut: nouveauStatut })
+      await chargerInspection(inspectionId)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Échec du changement de statut.')
+    } finally {
+      setChangementStatutEnCours(false)
+    }
+  }
+
   async function telechargerRapport() {
     setGenererPdfEnCours(true)
     try {
@@ -171,26 +195,40 @@ export default function InspectionDetail() {
 
   const modifiable = inspection.statut === 'en_cours'
   const photosDe = (type, id) => photosParCible[type]?.[id] || []
+  const statutInfo = STATUT_INSPECTION[inspection.statut] || STATUT_INSPECTION.en_cours
 
   return (
     <div>
       <Link to="/inspections" style={{ fontSize: '0.85rem' }}>← Inspections</Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '0.5rem 0 1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '0.5rem 0 1rem', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h1 style={{ margin: 0 }}>
             {formulaire.type_equipement.libelle} — {inspection.equipement.site.client.nom}
           </h1>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>
-            {inspection.equipement.site.nom} · {inspection.equipement.numero_serie || 'sans n° série'} ·
-            Statut : <strong>{inspection.statut}</strong>
+          <p style={{ margin: '4px 0 0', color: '#666', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {inspection.equipement.site.nom} · {inspection.equipement.numero_serie || 'sans n° série'} · {formatDate(inspection.date_inspection)}
+            <Badge variant={statutInfo.variant}>{statutInfo.label}</Badge>
           </p>
         </div>
-        {!modifiable && (
-          <button onClick={telechargerRapport} disabled={genererPdfEnCours} style={styles.boutonSecondaire}>
-            {genererPdfEnCours ? 'Génération…' : '📄 Télécharger le rapport PDF'}
-          </button>
-        )}
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {inspection.statut === 'en_cours' && (
+            <button onClick={() => handleChangerStatut('terminee')} disabled={changementStatutEnCours} style={styles.boutonSecondaire}>
+              ✓ Marquer comme terminée
+            </button>
+          )}
+          {(inspection.statut === 'terminee' || inspection.statut === 'validee') && (
+            <button onClick={() => handleChangerStatut('archivee')} disabled={changementStatutEnCours} style={styles.boutonSecondaire}>
+              🗄 Archiver
+            </button>
+          )}
+          {!modifiable && (
+            <button onClick={telechargerRapport} disabled={genererPdfEnCours} style={styles.boutonSecondaire}>
+              {genererPdfEnCours ? 'Génération…' : '📄 Télécharger le rapport PDF'}
+            </button>
+          )}
+        </div>
       </div>
 
       {synthese && (
@@ -301,7 +339,7 @@ export default function InspectionDetail() {
       {/* Conclusion */}
       <section style={styles.section}>
         <h2 style={styles.titreSection}>Conclusion</h2>
-        {modifiable ? (
+        {['en_cours', 'terminee'].includes(inspection.statut) ? (
           <>
             <textarea
               value={conclusion}

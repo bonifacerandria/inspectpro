@@ -70,4 +70,10 @@ class Inspection extends Model
     {
         return $this->statut === 'en_cours';
     }
+
+    /** Une inspection "terminée" (marquée par l'inspecteur) reste validable, pas seulement "en_cours". */
+    public function peutEtreValidee(): bool
+    {
+        return in_array($this->statut, ['en_cours', 'terminee'], true);
+    }
 }

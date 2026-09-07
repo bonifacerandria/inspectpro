@@ -11,11 +11,13 @@ class EquipementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $parPage = min((int) $request->query('per_page', 20), 500);
+
         $equipements = Equipement::with(['site.client', 'typeEquipement.famille', 'derniereInspection'])
             ->when($request->query('site_id'), fn ($q, $id) => $q->where('site_id', $id))
             ->when($request->query('type_equipement_id'), fn ($q, $id) => $q->where('type_equipement_id', $id))
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate($parPage);
 
         return response()->json($equipements);
     }
