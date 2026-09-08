@@ -16,6 +16,8 @@ class InspectionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $parPage = min((int) $request->query('per_page', 20), 500);
+
         $inspections = Inspection::with(['equipement.site.client', 'equipement.typeEquipement', 'inspecteur'])
             ->when($request->query('statut'), fn ($q, $s) => $q->where('statut', $s))
             ->when($request->query('equipement_id'), fn ($q, $id) => $q->where('equipement_id', $id))
@@ -25,7 +27,7 @@ class InspectionController extends Controller
                 fn ($q) => $q->where('inspecteur_id', $request->user()->id)
             )
             ->orderByDesc('date_inspection')
-            ->paginate(20);
+            ->paginate($parPage);
 
         return response()->json($inspections);
     }

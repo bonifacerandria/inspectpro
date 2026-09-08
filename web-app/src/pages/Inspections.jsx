@@ -29,7 +29,7 @@ export default function Inspections() {
     setChargement(true)
     setErreur(null)
     try {
-      const { data } = await apiClient.get('/inspections')
+      const { data } = await apiClient.get('/inspections', { params: { per_page: 500 } })
       setInspections(data.data ?? data)
     } catch {
       setErreur('Erreur de chargement des inspections.')
@@ -92,9 +92,10 @@ export default function Inspections() {
       render: (r) => formatDate(r.date_inspection),
     },
     {
-      key: 'avis_propose', label: 'Avis', filterable: false,
+      key: 'avis', label: 'Avis', filterable: false,
+      accessor: (r) => r.conclusion || r.avis_propose,
       render: (r) => (
-        <span style={{ fontSize: '12px', color: theme.colors.textSecondary }}>{r.avis_propose || ''}</span>
+        <span style={{ fontSize: '12px', color: theme.colors.textSecondary }}>{r.conclusion || r.avis_propose || ''}</span>
       ),
     },
     {

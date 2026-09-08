@@ -11,7 +11,7 @@ const CLIENT_VIDE = {
 
 export default function Clients() {
   const confirmer = useConfirm()
-  const { items: clients, chargement, erreur, creer, modifier, supprimer } = useRessourceCrud('/clients')
+  const { items: clients, chargement, erreur, creer, modifier, supprimer } = useRessourceCrud('/clients', { per_page: 500 })
 
   const [modaleOuverte, setModaleOuverte] = useState(false)
   const [clientEnEdition, setClientEnEdition] = useState(null)

@@ -31,10 +31,22 @@ class PhotoController extends Controller
             'photo' => 'required|file|image|max:10240', // 10 Mo max
         ]);
 
+        $fichier = $request->file('photo');
+
+        // Un fichier "présent" mais invalide (upload interrompu, dépassement
+        // d'une limite PHP non alignée avec la validation Laravel...) ne
+        // doit jamais finir stocké tel quel -> on préfère une erreur claire
+        // à une photo silencieusement corrompue.
+        if (! $fichier->isValid()) {
+            return response()->json([
+                'message' => "L'upload de la photo a échoué (fichier incomplet ou trop volumineux). Réessaie.",
+            ], 422);
+        }
+
         $inspectionId = $donnees['inspection_id'] ?? null;
         $dossier = $inspectionId ? "photos/inspections/{$inspectionId}" : 'photos/divers';
 
-        $chemin = $request->file('photo')->store($dossier, 'public');
+        $chemin = $fichier->store($dossier, 'public');
 
         $numero = 'Photo ' . (
             Photo::where('inspection_id', $inspectionId)->count() + 1

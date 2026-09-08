@@ -46,7 +46,7 @@ export default function Equipements() {
     setErreur(null)
     try {
       const [{ data: eq }, { data: st }, { data: types }, { data: fam }] = await Promise.all([
-        apiClient.get('/equipements'),
+        apiClient.get('/equipements', { params: { per_page: 500 } }),
         apiClient.get('/sites'),
         apiClient.get('/types-equipement'),
         apiClient.get('/familles-equipement'),

@@ -7,13 +7,13 @@ import apiClient from '../api/client'
  * Types d'équipement...) pour ne pas dupliquer la logique de chargement,
  * de rafraîchissement et de gestion d'erreurs sur chaque écran CRUD.
  */
-export function useRessourceCrud(endpoint) {
+export function useRessourceCrud(endpoint, parametresDefaut = {}) {
   const [items, setItems] = useState([])
   const [pagination, setPagination] = useState(null)
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState(null)
 
-  const charger = useCallback(async (params = {}) => {
+  const charger = useCallback(async (params = parametresDefaut) => {
     setChargement(true)
     setErreur(null)
     try {
@@ -26,6 +26,7 @@ export function useRessourceCrud(endpoint) {
     } finally {
       setChargement(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint])
 
   useEffect(() => {

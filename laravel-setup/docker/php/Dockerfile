@@ -10,6 +10,17 @@ RUN apt-get update && apt-get install -y \
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Limites d'upload — par défaut PHP plafonne à 2M/8M (upload_max_filesize/
+# post_max_size), bien en dessous d'une photo de téléphone. Alignées sous
+# la limite nginx (client_max_body_size 25M) pour laisser de la marge au
+# format multipart.
+RUN { \
+    echo 'upload_max_filesize = 20M'; \
+    echo 'post_max_size = 25M'; \
+    echo 'memory_limit = 256M'; \
+    echo 'max_execution_time = 120'; \
+    } > /usr/local/etc/php/conf.d/99-inspectpro-uploads.ini
+
 WORKDIR /var/www/html
 
 COPY . .
