@@ -4,12 +4,13 @@ import apiClient from '../api/client'
 import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import { theme, s } from '../styles/theme'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
 
 const TYPE_VIDE = { famille_id: '', code: '', libelle: '', icone: '', actif: true, ordre: 0 }
 
 export default function TypesEquipement() {
   const confirmer = useConfirm()
+  const alerter = useAlert()
   const [typesParFamille, setTypesParFamille] = useState({})
   const [familles, setFamilles] = useState([])
   const [chargement, setChargement] = useState(true)
@@ -85,7 +86,7 @@ export default function TypesEquipement() {
       await apiClient.delete(`/types-equipement/${type.id}`)
       await charger()
     } catch (err) {
-      alert(err.response?.data?.message || 'Suppression impossible.')
+      await alerter({ message: err.response?.data?.message || 'Suppression impossible.' })
     }
   }
 

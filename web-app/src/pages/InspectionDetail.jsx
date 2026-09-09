@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import PhotoUpload from '../components/ui/PhotoUpload'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
+import { useAuthStore } from '../context/authStore'
 import Badge from '../components/ui/Badge'
 import { theme, STATUT_INSPECTION } from '../styles/theme'
 import { formatDate } from '../utils/date'
@@ -21,6 +22,8 @@ export default function InspectionDetail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const confirmer = useConfirm()
+  const alerter = useAlert()
+  const moi = useAuthStore((state) => state.user)
 
   const [inspection, setInspection] = useState(null)
   const [formulaire, setFormulaire] = useState(null)
@@ -104,7 +107,7 @@ export default function InspectionDetail() {
       })
       await chargerInspection(inspectionId)
     } catch (err) {
-      alert(err.response?.data?.message || "Échec de l'enregistrement de la réponse.")
+      await alerter({ message: err.response?.data?.message || "Échec de l'enregistrement de la réponse." })
     }
   }
 
@@ -113,7 +116,7 @@ export default function InspectionDetail() {
       await apiClient.put(`/anomalies/${anomalie.id}`, champs)
       await chargerInspection(inspectionId)
     } catch {
-      alert("Échec de la mise à jour de l'anomalie.")
+      await alerter({ message: "Échec de la mise à jour de l'anomalie." })
     }
   }
 
@@ -144,7 +147,7 @@ export default function InspectionDetail() {
           await chargerInspection(inspectionId)
         }
       } else {
-        alert(err.response?.data?.message || 'Échec de la validation.')
+        await alerter({ message: err.response?.data?.message || 'Échec de la validation.' })
       }
     } finally {
       setValidationEnCours(false)
@@ -153,8 +156,9 @@ export default function InspectionDetail() {
 
   async function handleChangerStatut(nouveauStatut) {
     const libelles = {
+      en_cours: { titre: "Rouvrir l'inspection ?", message: 'Le statut repassera à "En cours" et la saisie des points de contrôle redeviendra modifiable.', bouton: 'Rouvrir' },
       terminee: { titre: "Marquer l'inspection comme terminée ?", message: 'La saisie des points de contrôle sera verrouillée. Tu pourras ensuite la valider.', bouton: 'Marquer comme terminée' },
-      archivee: { titre: "Archiver l'inspection ?", message: "L'inspection sera rangée hors des listes actives. Cette action reste réversible en base si besoin, mais aucun écran ne permet de désarchiver pour l'instant.", bouton: 'Archiver' },
+      archivee: { titre: "Archiver l'inspection ?", message: "L'inspection sera rangée hors des listes actives.", bouton: 'Archiver' },
     }
     const conf = libelles[nouveauStatut]
     const ok = await confirmer({ titre: conf.titre, message: conf.message, libelleConfirmer: conf.bouton, danger: false })
@@ -165,7 +169,7 @@ export default function InspectionDetail() {
       await apiClient.patch(`/inspections/${inspectionId}/statut`, { statut: nouveauStatut })
       await chargerInspection(inspectionId)
     } catch (err) {
-      alert(err.response?.data?.message || 'Échec du changement de statut.')
+      await alerter({ message: err.response?.data?.message || 'Échec du changement de statut.' })
     } finally {
       setChangementStatutEnCours(false)
     }
@@ -183,7 +187,7 @@ export default function InspectionDetail() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch {
-      alert('Échec de la génération du rapport.')
+      await alerter({ message: 'Échec de la génération du rapport.' })
     } finally {
       setGenererPdfEnCours(false)
     }
@@ -212,7 +216,7 @@ export default function InspectionDetail() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           {inspection.statut === 'en_cours' && (
             <button onClick={() => handleChangerStatut('terminee')} disabled={changementStatutEnCours} style={styles.boutonSecondaire}>
               ✓ Marquer comme terminée
@@ -227,6 +231,24 @@ export default function InspectionDetail() {
             <button onClick={telechargerRapport} disabled={genererPdfEnCours} style={styles.boutonSecondaire}>
               {genererPdfEnCours ? 'Génération…' : '📄 Télécharger le rapport PDF'}
             </button>
+          )}
+
+          {/* Admin : changement de statut libre (désarchiver, rouvrir une inspection validée...) */}
+          {moi?.role === 'admin' && (
+            <select
+              value=""
+              disabled={changementStatutEnCours}
+              onChange={(e) => { if (e.target.value) handleChangerStatut(e.target.value); e.target.value = '' }}
+              style={styles.selectStatutAdmin}
+              title="Changer librement le statut (admin)"
+            >
+              <option value="">⚙ Modifier le statut…</option>
+              {['en_cours', 'terminee', 'archivee']
+                .filter((st) => st !== inspection.statut)
+                .map((st) => (
+                  <option key={st} value={st}>→ {STATUT_INSPECTION[st].label}</option>
+                ))}
+            </select>
           )}
         </div>
       </div>
@@ -549,4 +571,8 @@ const styles = {
   input: { padding: '0.4rem', borderRadius: 4, border: '1px solid #ccc' },
   boutonPrincipal: { padding: '0.6rem 1.2rem', borderRadius: 4, border: 'none', background: '#1a1a1a', color: '#fff', cursor: 'pointer' },
   boutonSecondaire: { padding: '0.5rem 1rem', borderRadius: 4, border: '1px solid #1a1a1a', background: '#fff', cursor: 'pointer' },
+  selectStatutAdmin: {
+    padding: '0.5rem 0.75rem', borderRadius: 4, border: `1px solid ${theme.colors.borderStrong}`,
+    background: theme.colors.surfaceAlt, cursor: 'pointer', fontSize: '0.85rem', color: theme.colors.textSecondary,
+  },
 }

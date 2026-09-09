@@ -3,8 +3,10 @@ import apiClient from '../api/client'
 import { theme, s } from '../styles/theme'
 import DataTable from '../components/ui/DataTable'
 import { formatDate } from '../utils/date'
+import { useAlert } from '../context/ConfirmContext'
 
 export default function Rapports() {
+  const alerter = useAlert()
   const [rapports, setRapports] = useState([])
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState(null)
@@ -36,7 +38,7 @@ export default function Rapports() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch {
-      alert('Échec du téléchargement.')
+      await alerter({ message: 'Échec du téléchargement.' })
     } finally {
       setTelechargementId(null)
     }

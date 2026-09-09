@@ -6,12 +6,13 @@ import EmptyState from '../components/ui/EmptyState'
 import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
 import { useAuthStore } from '../context/authStore'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
 
 const USER_VIDE = { nom: '', email: '', password: '', role: 'inspecteur', telephone: '', actif: true }
 
 export default function Utilisateurs() {
   const confirmer = useConfirm()
+  const alerter = useAlert()
   const moi = useAuthStore((state) => state.user)
   const [users, setUsers] = useState([])
   const [chargement, setChargement] = useState(true)
@@ -82,7 +83,7 @@ export default function Utilisateurs() {
       await apiClient.delete(`/users/${user.id}`)
       await charger()
     } catch (err) {
-      alert(err.response?.data?.message || 'Suppression impossible.')
+      await alerter({ message: err.response?.data?.message || 'Suppression impossible.' })
     }
   }
 

@@ -3,7 +3,7 @@ import { useRessourceCrud } from '../hooks/useRessourceCrud'
 import Modal from '../components/ui/Modal'
 import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
 
 const CLIENT_VIDE = {
   nom: '', adresse: '', contact: '', telephone: '', email: '', reference_client: '',
@@ -11,6 +11,7 @@ const CLIENT_VIDE = {
 
 export default function Clients() {
   const confirmer = useConfirm()
+  const alerter = useAlert()
   const { items: clients, chargement, erreur, creer, modifier, supprimer } = useRessourceCrud('/clients', { per_page: 500 })
 
   const [modaleOuverte, setModaleOuverte] = useState(false)
@@ -62,7 +63,7 @@ export default function Clients() {
     try {
       await supprimer(client.id)
     } catch (err) {
-      alert(err.response?.data?.message || 'Suppression impossible.')
+      await alerter({ message: err.response?.data?.message || 'Suppression impossible.' })
     }
   }
 

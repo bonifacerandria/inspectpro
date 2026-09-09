@@ -5,7 +5,7 @@ import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
 import { formatDate } from '../utils/date'
 
 const IDENTIFICATION_VIDE = {
@@ -25,6 +25,7 @@ const LIBELLES_CHAMPS_SUPPL = {
 export default function Equipements() {
   const navigate = useNavigate()
   const confirmer = useConfirm()
+  const alerter = useAlert()
   const [equipements, setEquipements] = useState([])
   const [sites, setSites] = useState([])
   const [typesParFamille, setTypesParFamille] = useState({})
@@ -107,7 +108,7 @@ export default function Equipements() {
       await apiClient.delete(`/equipements/${equipement.id}`)
       await charger()
     } catch (err) {
-      alert(err.response?.data?.message || 'Suppression impossible.')
+      await alerter({ message: err.response?.data?.message || 'Suppression impossible.' })
     }
   }
 

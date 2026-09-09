@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import apiClient from '../../api/client'
-import { useConfirm } from '../../context/ConfirmContext'
+import { useConfirm, useAlert } from '../../context/ConfirmContext'
 
 /**
  * Zone d'upload + galerie miniature réutilisable, branchée sur l'endpoint
@@ -18,6 +18,7 @@ export default function PhotoUpload({
 }) {
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
   const confirmer = useConfirm()
+  const alerter = useAlert()
 
   async function handleFichier(e) {
     const fichier = e.target.files?.[0]
@@ -37,7 +38,7 @@ export default function PhotoUpload({
       })
       onChange?.([...photos, data])
     } catch (err) {
-      alert(err.response?.data?.message || "Échec de l'upload de la photo.")
+      await alerter({ message: err.response?.data?.message || "Échec de l'upload de la photo." })
     } finally {
       setEnvoiEnCours(false)
       e.target.value = ''
@@ -55,7 +56,7 @@ export default function PhotoUpload({
       await apiClient.delete(`/photos/${photo.id}`)
       onChange?.(photos.filter((p) => p.id !== photo.id))
     } catch {
-      alert('Suppression impossible.')
+      await alerter({ message: 'Suppression impossible.' })
     }
   }
 

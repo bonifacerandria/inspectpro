@@ -127,31 +127,43 @@ class InspectionController extends Controller
 
     /**
      * PATCH /inspections/{inspection}/statut
-     * Gère les transitions "terminée" et "archivée" du cycle de vie d'une
-     * inspection. La transition vers "validée" reste exclusivement gérée
-     * par valider() ci-dessus (elle a des règles métier propres : synthèse,
-     * photos obligatoires, conclusion).
+     * Gère les transitions "terminée" / "en_cours" / "archivée" du cycle de
+     * vie d'une inspection. La transition vers "validée" reste exclusivement
+     * gérée par valider() ci-dessus (règles métier propres : synthèse,
+     * photos obligatoires, conclusion) — jamais via cet endpoint.
      *
-     * Transitions autorisées :
-     *   en_cours            -> terminee   (l'inspecteur a fini la saisie terrain)
+     * Un INSPECTEUR suit le flux normal, strict :
+     *   en_cours            -> terminee   (fin de la saisie terrain)
      *   terminee | validee  -> archivee   (rangement, hors des listes actives)
+     *
+     * Un ADMIN peut librement réorganiser le statut dans les deux sens —
+     * notamment désarchiver, ou rouvrir une inspection validée pour
+     * correction (ex: archivee -> en_cours, validee -> en_cours).
      */
     public function changerStatut(Request $request, Inspection $inspection): JsonResponse
     {
         $donnees = $request->validate([
-            'statut' => 'required|in:terminee,archivee',
+            // "validee" volontairement exclu : uniquement via POST /valider.
+            'statut' => 'required|in:en_cours,terminee,archivee',
         ]);
 
-        $transitionsAutorisees = [
-            'terminee' => ['en_cours'],
-            'archivee' => ['terminee', 'validee'],
-        ];
-
-        if (! in_array($inspection->statut, $transitionsAutorisees[$donnees['statut']], true)) {
-            return response()->json([
-                'message' => "Transition invalide : impossible de passer de \"{$inspection->statut}\" à \"{$donnees['statut']}\".",
-            ], 422);
+        if ($donnees['statut'] === $inspection->statut) {
+            return response()->json(['message' => 'Cette inspection a déjà ce statut.'], 422);
         }
+
+        if (! $request->user()->estAdmin()) {
+            $transitionsAutorisees = [
+                'terminee' => ['en_cours'],
+                'archivee' => ['terminee', 'validee'],
+            ];
+
+            if (! in_array($inspection->statut, $transitionsAutorisees[$donnees['statut']] ?? [], true)) {
+                return response()->json([
+                    'message' => "Transition invalide : impossible de passer de \"{$inspection->statut}\" à \"{$donnees['statut']}\". Seul un administrateur peut effectuer ce changement.",
+                ], 422);
+            }
+        }
+        // Un admin peut effectuer n'importe quelle transition (hors "validee").
 
         $inspection->update(['statut' => $donnees['statut']]);
 

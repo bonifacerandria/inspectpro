@@ -33,5 +33,8 @@ RUN test -f composer.json || (echo "ERREUR : composer.json absent. Lance d'abord
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+RUN chmod +x docker/php/entrypoint.sh
+
 EXPOSE 9000
+ENTRYPOINT ["docker/php/entrypoint.sh"]
 CMD ["php-fpm"]

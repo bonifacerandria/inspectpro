@@ -4,18 +4,18 @@ import { theme } from '../styles/theme'
 const ConfirmContext = createContext(null)
 
 /**
- * Fournit une fonction confirmer({ titre, message, libelleConfirmer, danger })
- * qui renvoie une Promise<boolean> — remplace window.confirm() partout dans
- * l'app par une modale cohérente avec le design system.
- *
- * Usage : const ok = await confirmer({ titre: '...', message: '...' })
+ * Fournit deux fonctions qui remplacent window.confirm() et window.alert()
+ * par des modales cohérentes avec le design system :
+ *   - confirmer({ titre, message, libelleConfirmer, danger }) -> Promise<boolean>
+ *   - alerter({ titre, message, type: 'erreur'|'info'|'succes' })  -> Promise<void>
  */
 export function ConfirmProvider({ children }) {
-  const [etat, setEtat] = useState(null) // { titre, message, libelleConfirmer, danger, resolve }
+  const [dialogueConfirm, setDialogueConfirm] = useState(null) // { titre, message, libelleConfirmer, danger, resolve }
+  const [dialogueAlerte, setDialogueAlerte] = useState(null) // { titre, message, type, resolve }
 
   const confirmer = useCallback((options) => {
     return new Promise((resolve) => {
-      setEtat({
+      setDialogueConfirm({
         titre: options.titre || 'Confirmer',
         message: options.message || 'Es-tu sûr de vouloir continuer ?',
         libelleConfirmer: options.libelleConfirmer || 'Confirmer',
@@ -25,29 +25,70 @@ export function ConfirmProvider({ children }) {
     })
   }, [])
 
-  function repondre(valeur) {
-    etat?.resolve(valeur)
-    setEtat(null)
+  const alerter = useCallback((options) => {
+    // Accepte aussi un simple string, pour remplacer alert('...') telle quelle.
+    const opts = typeof options === 'string' ? { message: options } : options
+    return new Promise((resolve) => {
+      setDialogueAlerte({
+        titre: opts.titre || (opts.type === 'erreur' ? 'Une erreur est survenue' : 'Information'),
+        message: opts.message || '',
+        type: opts.type || 'erreur', // 'erreur' | 'info' | 'succes'
+        resolve,
+      })
+    })
+  }, [])
+
+  function repondreConfirm(valeur) {
+    dialogueConfirm?.resolve(valeur)
+    setDialogueConfirm(null)
+  }
+
+  function fermerAlerte() {
+    dialogueAlerte?.resolve()
+    setDialogueAlerte(null)
+  }
+
+  const ICONES = { erreur: '⚠️', info: 'ℹ️', succes: '✅' }
+  const COULEURS = {
+    erreur: theme.colors.dangerSoft, info: theme.colors.accentSoft, succes: theme.colors.successSoft,
   }
 
   return (
-    <ConfirmContext.Provider value={confirmer}>
+    <ConfirmContext.Provider value={{ confirmer, alerter }}>
       {children}
-      {etat && (
-        <div style={styles.fond} onClick={() => repondre(false)}>
+
+      {dialogueConfirm && (
+        <div style={styles.fond} onClick={() => repondreConfirm(false)}>
           <div style={styles.boite} onClick={(e) => e.stopPropagation()}>
-            <div style={{ ...styles.icone, background: etat.danger ? theme.colors.dangerSoft : theme.colors.accentSoft }}>
-              {etat.danger ? '🗑️' : '❓'}
+            <div style={{ ...styles.icone, background: dialogueConfirm.danger ? theme.colors.dangerSoft : theme.colors.accentSoft }}>
+              {dialogueConfirm.danger ? '🗑️' : '❓'}
             </div>
-            <h3 style={styles.titre}>{etat.titre}</h3>
-            <p style={styles.message}>{etat.message}</p>
+            <h3 style={styles.titre}>{dialogueConfirm.titre}</h3>
+            <p style={styles.message}>{dialogueConfirm.message}</p>
             <div style={styles.actions}>
-              <button onClick={() => repondre(false)} style={styles.btnAnnuler}>Annuler</button>
+              <button onClick={() => repondreConfirm(false)} style={styles.btnAnnuler}>Annuler</button>
               <button
-                onClick={() => repondre(true)}
-                style={{ ...styles.btnConfirmer, background: etat.danger ? theme.colors.danger : theme.colors.accent }}
+                onClick={() => repondreConfirm(true)}
+                style={{ ...styles.btnConfirmer, background: dialogueConfirm.danger ? theme.colors.danger : theme.colors.accent }}
               >
-                {etat.libelleConfirmer}
+                {dialogueConfirm.libelleConfirmer}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dialogueAlerte && (
+        <div style={styles.fond} onClick={fermerAlerte}>
+          <div style={styles.boite} onClick={(e) => e.stopPropagation()}>
+            <div style={{ ...styles.icone, background: COULEURS[dialogueAlerte.type] }}>
+              {ICONES[dialogueAlerte.type]}
+            </div>
+            <h3 style={styles.titre}>{dialogueAlerte.titre}</h3>
+            <p style={styles.message}>{dialogueAlerte.message}</p>
+            <div style={styles.actions}>
+              <button onClick={fermerAlerte} style={{ ...styles.btnConfirmer, background: theme.colors.accent }}>
+                Compris
               </button>
             </div>
           </div>
@@ -57,10 +98,17 @@ export function ConfirmProvider({ children }) {
   )
 }
 
+/** Renvoie { confirmer, alerter } — remplace window.confirm()/window.alert() partout dans l'app. */
 export function useConfirm() {
   const ctx = useContext(ConfirmContext)
   if (!ctx) throw new Error('useConfirm() doit être utilisé sous <ConfirmProvider>')
-  return ctx
+  return ctx.confirmer
+}
+
+export function useAlert() {
+  const ctx = useContext(ConfirmContext)
+  if (!ctx) throw new Error('useAlert() doit être utilisé sous <ConfirmProvider>')
+  return ctx.alerter
 }
 
 const styles = {

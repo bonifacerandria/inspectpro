@@ -4,12 +4,13 @@ import Modal from '../components/ui/Modal'
 import EmptyState from '../components/ui/EmptyState'
 import DataTable from '../components/ui/DataTable'
 import { theme, s } from '../styles/theme'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm, useAlert } from '../context/ConfirmContext'
 
 const SITE_VIDE = { client_id: '', nom: '', adresse: '' }
 
 export default function Sites() {
   const confirmer = useConfirm()
+  const alerter = useAlert()
   const [sites, setSites] = useState([])
   const [clients, setClients] = useState([])
   const [filtreClientId, setFiltreClientId] = useState('')
@@ -84,7 +85,7 @@ export default function Sites() {
       await apiClient.delete(`/sites/${site.id}`)
       await charger()
     } catch (err) {
-      alert(err.response?.data?.message || 'Suppression impossible.')
+      await alerter({ message: err.response?.data?.message || 'Suppression impossible.' })
     }
   }
 
