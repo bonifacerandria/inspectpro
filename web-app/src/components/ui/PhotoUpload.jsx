@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import apiClient from '../../api/client'
 import { useConfirm, useAlert } from '../../context/ConfirmContext'
+import Modal from './Modal'
 
 /**
  * Zone d'upload + galerie miniature réutilisable, branchée sur l'endpoint
  * générique POST /photos. `photographiableType`/`photographiableId`
  * définissent où la photo se rattache (anomalie, photo_obligatoire,
- * reponse_controle...).
+ * reponse_controle...). Clic sur une vignette -> agrandissement en modale.
  */
 export default function PhotoUpload({
   inspectionId,
@@ -17,6 +18,7 @@ export default function PhotoUpload({
   onChange,
 }) {
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
+  const [photoAgrandie, setPhotoAgrandie] = useState(null)
   const confirmer = useConfirm()
   const alerter = useAlert()
 
@@ -64,7 +66,12 @@ export default function PhotoUpload({
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
       {photos.map((photo) => (
         <div key={photo.id} style={styles.miniature}>
-          <img src={photo.url} alt={photo.numero} style={styles.image} />
+          <img
+            src={photo.url}
+            alt={photo.numero}
+            style={{ ...styles.image, cursor: 'zoom-in' }}
+            onClick={() => setPhotoAgrandie(photo)}
+          />
           <button onClick={() => handleSupprimer(photo)} style={styles.boutonSupprimer} title="Supprimer">
             ×
           </button>
@@ -75,6 +82,20 @@ export default function PhotoUpload({
         {envoiEnCours ? '…' : '📷 +'}
         <input type="file" accept="image/*" onChange={handleFichier} disabled={envoiEnCours} style={{ display: 'none' }} />
       </label>
+
+      {photoAgrandie && (
+        <Modal titre={photoAgrandie.libelle || photoAgrandie.numero || 'Photo'} onFermer={() => setPhotoAgrandie(null)} width={640}>
+          <img src={photoAgrandie.url} alt={photoAgrandie.numero} style={{ width: '100%', borderRadius: 8, display: 'block' }} />
+          <a
+            href={photoAgrandie.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: 'inline-block', marginTop: '10px', fontSize: '13px', color: '#2563EB', fontWeight: 600 }}
+          >
+            Ouvrir dans un nouvel onglet ↗
+          </a>
+        </Modal>
+      )}
     </div>
   )
 }

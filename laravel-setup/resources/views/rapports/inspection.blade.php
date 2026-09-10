@@ -9,12 +9,12 @@
         table { width: 100%; border-collapse: collapse; }
         .page-break { page-break-before: always; }
 
-        .entete { width: 100%; border: 1.5px solid #000; margin-bottom: 14px; }
-        .entete td { border: none; padding: 8px 10px; vertical-align: middle; }
-        .entete .case-logo { width: 90px; border-right: 1.5px solid #000; text-align: center; font-size: 9px; color: #999; }
-        .entete .case-titre { border-right: 1.5px solid #000; font-size: 15px; font-weight: bold; text-align: center; }
-        .entete .case-meta { width: 150px; font-size: 9.5px; }
-        .entete .case-meta div { margin-bottom: 4px; }
+        .entete { width: 100%; border: 1.5px solid #000; margin-bottom: 14px; table-layout: fixed; }
+        .entete td { border: none; padding: 8px 10px; vertical-align: middle; word-wrap: break-word; overflow-wrap: break-word; }
+        .entete .case-logo { width: 15%; border-right: 1.5px solid #000; text-align: center; font-size: 9px; color: #999; }
+        .entete .case-titre { width: 50%; border-right: 1.5px solid #000; font-size: 15px; font-weight: bold; text-align: center; }
+        .entete .case-meta { width: 35%; font-size: 9.5px; line-height: 1.6; }
+        .entete .case-meta div { white-space: normal; }
         .sous-titre-page { text-align: center; font-weight: bold; font-size: 10.5px; margin: 4px 0 14px; }
 
         .blocs-adresses { width: 100%; margin-bottom: 18px; }
@@ -51,7 +51,7 @@
         .table-controle th { background: #eee; font-weight: bold; }
         .table-controle .col-point { width: 45%; }
 
-        .pied-page { position: fixed; bottom: -14mm; left: 0; right: 0; text-align: center; font-size: 9px; color: #555; }
+        .pied-page { position: fixed; bottom: -16mm; left: 0; right: 0; text-align: center; font-size: 8.5px; color: #666; border-top: 0.5px solid #ccc; padding-top: 4px; }
         .pied-page .num-rapport { float: left; }
         .pied-page .num-page { float: right; }
     </style>

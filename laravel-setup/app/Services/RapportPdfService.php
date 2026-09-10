@@ -126,12 +126,17 @@ class RapportPdfService
         return $groupes;
     }
 
-    /** Convertit la première "Photo générale" en data URI pour l'intégrer directement au PDF. */
+    /** Convertit la "Photo générale" (photo obligatoire, jamais une autre) en data URI pour l'intégrer au PDF. */
     private function photoGeneraleEnBase64(Inspection $inspection): ?string
     {
-        $photo = $inspection->photos
-            ->first(fn ($p) => str_contains(mb_strtolower($p->libelle ?? ''), 'générale'))
-            ?? $inspection->photos->first();
+        // ⚠️ Ne JAMAIS retomber sur "une photo au hasard" en l'absence de
+        // correspondance exacte : mieux vaut ne pas illustrer la lettre que
+        // d'y afficher une photo sans rapport (ex: une photo de test liée à
+        // un tout autre point de contrôle).
+        $photo = $inspection->photos->first(
+            fn ($p) => $p->photographiable_type === 'photo_obligatoire'
+                && str_contains(mb_strtolower($p->libelle ?? ''), 'générale')
+        );
 
         if (! $photo || ! Storage::disk('public')->exists($photo->chemin_fichier)) {
             return null;
