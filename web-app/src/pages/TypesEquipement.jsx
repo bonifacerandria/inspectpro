@@ -78,7 +78,7 @@ export default function TypesEquipement() {
   async function handleSupprimer(type) {
     const ok = await confirmer({
       titre: 'Supprimer ce type ?',
-      message: `"${type.libelle}" et tous ses points de contrôle associés seront définitivement supprimés.`,
+      message: `"${type.libelle}" et tous ses points de contrôle seront définitivement supprimés, ainsi que ses équipements et leurs inspections archivées. Impossible si l'un de ses équipements a une inspection encore active.`,
       libelleConfirmer: 'Supprimer',
     })
     if (!ok) return

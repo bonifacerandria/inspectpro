@@ -100,7 +100,7 @@ export default function Equipements() {
   async function handleSupprimer(equipement) {
     const ok = await confirmer({
       titre: 'Supprimer cet équipement ?',
-      message: `L'équipement ${equipement.numero_serie ? `n° ${equipement.numero_serie}` : `#${equipement.id}`} sera définitivement supprimé.`,
+      message: `L'équipement ${equipement.numero_serie ? `n° ${equipement.numero_serie}` : `#${equipement.id}`} sera définitivement supprimé, ainsi que ses inspections archivées (rapports, photos, anomalies inclus). Impossible s'il a des inspections encore actives.`,
       libelleConfirmer: 'Supprimer',
     })
     if (!ok) return

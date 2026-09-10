@@ -9,8 +9,12 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Assemble les données de l'inspection au format attendu par la vue
- * resources/views/rapports/inspection.blade.php et génère le PDF final
- * (cf. CDC section 20 : structure du rapport en 11 parties).
+ * resources/views/rapports/inspection.blade.php et génère le PDF final.
+ *
+ * Mise en page calquée sur le modèle de rapport fourni (APAVE Madagascar —
+ * "RAPPORT DE VERIFICATION EQUIPEMENT MECANIQUE") : lettre d'accompagnement
+ * avec photo, fiche d'identification + conclusion + observations
+ * numérotées, puis détail des points de contrôle par section.
  *
  * Nécessite le package barryvdh/laravel-dompdf :
  *   composer require barryvdh/laravel-dompdf
@@ -24,23 +28,42 @@ class RapportPdfService
             'equipement.typeEquipement',
             'inspecteur',
             'reponses.pointControle.section',
-            'anomalies.photos',
+            'anomalies',
             'essais',
             'documents',
+            'photos',
         ]);
+
+        $observations = $inspection->anomalies->values()->map(fn ($anomalie, $i) => [
+            'numero' => $i + 1,
+            'texte' => $anomalie->constat,
+            'action' => $anomalie->action_recommandee,
+        ]);
+
+        // Point de contrôle -> n° d'observation, pour afficher "Voir observation n°X"
+        // dans le détail (comme dans le modèle) quand une anomalie y est liée.
+        $numeroObservationParReponse = [];
+        foreach ($inspection->anomalies as $i => $anomalie) {
+            if ($anomalie->reponse_controle_id) {
+                $numeroObservationParReponse[$anomalie->reponse_controle_id] = $i + 1;
+            }
+        }
 
         $numeroRapport = $this->genererNumero($inspection);
 
         $pdf = Pdf::loadView('rapports.inspection', [
             'inspection' => $inspection,
-            'sections' => $this->grouperParSection($inspection),
+            'sections' => $this->grouperParSection($inspection, $numeroObservationParReponse),
             'rapport_numero' => $numeroRapport,
+            'observations' => $observations,
+            'photo_generale_base64' => $this->photoGeneraleEnBase64($inspection),
+            'registre_vise' => $this->registreVise($inspection),
         ])->setPaper('a4');
 
         $chemin = "rapports/inspection-{$inspection->id}-{$numeroRapport}.pdf";
         Storage::disk('public')->put($chemin, $pdf->output());
 
-        return \App\Models\Rapport::updateOrCreate(
+        return Rapport::updateOrCreate(
             ['inspection_id' => $inspection->id],
             [
                 'numero_rapport' => $numeroRapport,
@@ -60,11 +83,19 @@ class RapportPdfService
     }
 
     /**
-     * Regroupe les réponses par section (dans l'ordre du formulaire) pour
-     * que le PDF reproduise la même structure que l'écran d'inspection.
+     * Regroupe les réponses par section (dans l'ordre du formulaire) et
+     * calcule un "constat" textuel pour chaque point — le commentaire de
+     * l'inspecteur s'il y en a un, sinon le libellé du statut, complété
+     * d'un renvoi "Voir observation n°X" quand une anomalie y est liée
+     * (reprend le style du modèle papier).
      */
-    private function grouperParSection(Inspection $inspection): array
+    private function grouperParSection(Inspection $inspection, array $numeroObservationParReponse): array
     {
+        $labelsStatut = [
+            'C' => 'Conforme', 'O' => 'Observation', 'NC' => 'Non conforme',
+            'DM' => 'Défaut majeur', 'DI' => 'Danger immédiat', 'NA' => 'Non applicable',
+        ];
+
         $groupes = [];
 
         foreach ($inspection->reponses as $reponse) {
@@ -77,16 +108,48 @@ class RapportPdfService
                 'reponses' => [],
             ];
 
+            $constat = $reponse->commentaire
+                ?: ($labelsStatut[$reponse->statut] ?? $reponse->valeur_choix ?? $reponse->valeur_texte ?? (string) $reponse->valeur_nombre ?: '—');
+
+            if (isset($numeroObservationParReponse[$reponse->id])) {
+                $constat .= " (voir observation n°{$numeroObservationParReponse[$reponse->id]})";
+            }
+
             $groupes[$cle]['reponses'][] = [
                 'libelle' => $reponse->pointControle->libelle,
-                'statut' => in_array($reponse->statut, ['C', 'O', 'NC', 'DM', 'DI', 'NA'], true) ? $reponse->statut : null,
-                'valeur_affichee' => $reponse->valeur_choix ?? $reponse->valeur_texte ?? $reponse->valeur_nombre,
-                'commentaire' => $reponse->commentaire,
+                'constat' => $constat,
             ];
         }
 
         usort($groupes, fn ($a, $b) => $a['ordre'] <=> $b['ordre']);
 
         return $groupes;
+    }
+
+    /** Convertit la première "Photo générale" en data URI pour l'intégrer directement au PDF. */
+    private function photoGeneraleEnBase64(Inspection $inspection): ?string
+    {
+        $photo = $inspection->photos
+            ->first(fn ($p) => str_contains(mb_strtolower($p->libelle ?? ''), 'générale'))
+            ?? $inspection->photos->first();
+
+        if (! $photo || ! Storage::disk('public')->exists($photo->chemin_fichier)) {
+            return null;
+        }
+
+        $contenu = Storage::disk('public')->get($photo->chemin_fichier);
+        $mime = Storage::disk('public')->mimeType($photo->chemin_fichier) ?: 'image/jpeg';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($contenu);
+    }
+
+    /** true/false si le document "Registre de sécurité" a été explicitement marqué présent/absent, sinon null (non renseigné). */
+    private function registreVise(Inspection $inspection): ?bool
+    {
+        $document = $inspection->documents->first(
+            fn ($d) => str_contains(mb_strtolower($d->libelle ?? ''), 'registre')
+        );
+
+        return $document?->present;
     }
 }

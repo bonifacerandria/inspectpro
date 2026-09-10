@@ -48,10 +48,22 @@ class TypeEquipementController extends Controller
 
     public function destroy(TypeEquipement $typeEquipement): JsonResponse
     {
-        if ($typeEquipement->equipements()->exists()) {
+        $equipementsAvecInspectionsActives = $typeEquipement->equipements()
+            ->whereHas('inspections', fn ($q) => $q->where('statut', '!=', 'archivee'))
+            ->exists();
+
+        if ($equipementsAvecInspectionsActives) {
             return response()->json([
-                'message' => 'Impossible de supprimer un type utilisé par des équipements existants. Désactivez-le plutôt.',
+                'message' => "Impossible de supprimer un type dont des équipements ont des inspections actives. Archive-les d'abord, puis réessaie.",
             ], 422);
+        }
+
+        // À ce stade, chaque équipement de ce type n'a que des inspections
+        // archivées (ou aucune) -> on peut supprimer les équipements (leurs
+        // inspections cascadent avec) puis le type lui-même.
+        foreach ($typeEquipement->equipements as $equipement) {
+            $equipement->inspections()->delete();
+            $equipement->delete();
         }
 
         $typeEquipement->delete();

@@ -45,12 +45,20 @@ class EquipementController extends Controller
 
     public function destroy(Equipement $equipement): JsonResponse
     {
-        if ($equipement->inspections()->exists()) {
+        $inspectionsNonArchivees = $equipement->inspections()->where('statut', '!=', 'archivee')->exists();
+
+        if ($inspectionsNonArchivees) {
             return response()->json([
-                'message' => 'Impossible de supprimer un équipement ayant des inspections. Archivez-le plutôt.',
+                'message' => "Impossible de supprimer un équipement ayant des inspections actives. Archive-les d'abord (menu ⚙ Modifier le statut sur chaque inspection), puis réessaie.",
             ], 422);
         }
 
+        // Toutes les inspections restantes (s'il y en a) sont archivées :
+        // on les supprime avec l'équipement. La suppression cascade déjà,
+        // au niveau base de données, sur réponses/anomalies/photos/essais/
+        // documents/signatures/rapports de chacune (cf. migrations
+        // ->cascadeOnDelete() sur inspection_id).
+        $equipement->inspections()->delete();
         $equipement->delete();
 
         return response()->json(null, 204);
