@@ -15,6 +15,7 @@ import Inspections from './pages/Inspections'
 import InspectionDetail from './pages/InspectionDetail'
 import Rapports from './pages/Rapports'
 import Statistiques from './pages/Statistiques'
+import FamillesEquipement from './pages/FamillesEquipement'
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
               {/* Paramètres */}
               <Route path="/parametres/sites" element={<Sites />} />
               <Route path="/parametres/utilisateurs" element={<Utilisateurs />} />
+              <Route path="/parametres/familles" element={<FamillesEquipement />} />
             </Route>
           </Route>
         </Routes>

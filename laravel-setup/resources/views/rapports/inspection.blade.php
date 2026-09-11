@@ -10,11 +10,10 @@
         .page-break { page-break-before: always; }
         p { margin: 0 0 9px; }
 
-        /* --- En-tête (grille entièrement bordée, comme le modèle) --- */
         .entete { border: 1.3px solid #000; margin-bottom: 14px; }
         .entete td { border: 1.3px solid #000; padding: 8px 10px; vertical-align: middle; }
         .entete .case-logo { width: 18%; text-align: center; font-size: 9px; color: #888; }
-        .entete .case-titre { width: 47%; font-size: 15px; font-weight: bold; text-align: center; }
+        .entete .case-titre { width: 47%; font-size: 14px; font-weight: bold; text-align: center; }
         .entete .case-meta { width: 35%; font-size: 9.5px; padding: 0; }
         .entete .case-meta table td { border: none; border-bottom: 1px solid #000; padding: 5px 8px; }
         .entete .case-meta table tr:last-child td { border-bottom: none; }
@@ -22,7 +21,6 @@
 
         .sous-titre-page { text-align: center; font-weight: bold; font-size: 10.5px; margin: 6px 0 14px; }
 
-        /* --- Page 1 : lettre d'accompagnement --- */
         .blocs-adresses td { vertical-align: top; font-size: 9.5px; font-style: italic; font-weight: bold; text-align: center; width: 50%; line-height: 1.5; }
         .encadre-photo {
             width: 260px; height: 190px; border: 1.3px solid #000; margin: 14px auto;
@@ -38,7 +36,6 @@
         .zone-signature td { width: 50%; vertical-align: top; font-size: 10px; }
         .zone-signature .titre-signature { font-weight: bold; text-decoration: underline; margin-bottom: 26px; display: block; }
 
-        /* --- Page 2 : identification / résultats / conclusion --- */
         .grille-identif { margin-bottom: 12px; border: 1.3px solid #000; }
         .grille-identif td { border: 1.3px solid #000; padding: 5px 8px; font-size: 9.5px; }
         .grille-identif .label { font-weight: bold; width: 24%; background: #f2f2f2; }
@@ -52,25 +49,23 @@
         .observations li { margin-bottom: 5px; }
         .observations .action { font-style: italic; color: #444; font-size: 9px; }
 
-        /* --- Page 3+ : détail des points de contrôle --- */
         .table-controle { margin-bottom: 14px; border: 1.3px solid #000; }
         .table-controle th, .table-controle td { border: 1px solid #000; padding: 4px 8px; font-size: 9px; text-align: left; }
         .table-controle th { background: #eee; font-weight: bold; }
         .table-controle .col-point { width: 45%; }
 
-        /* Mention de bas de page — DANS le flux normal du document (pas de
-           position:fixed, qui provoque un bug dompdf générant des pages
-           blanches). Placée en fin de chaque grande section. */
         .pied-section { text-align: center; font-weight: bold; font-size: 9px; margin-top: 22px; letter-spacing: 0.3px; }
     </style>
 </head>
 <body>
 
 @php
-    $entete = function () use ($rapport_numero, $inspection) {
+    // Titre d'en-tête propre à la famille de l'équipement (géré depuis
+    // "Paramètres > Gestion des familles") -> jamais codé en dur.
+    $entete = function () use ($rapport_numero, $inspection, $titre_entete) {
         echo '<table class="entete"><tr>';
         echo '<td class="case-logo">LOGO</td>';
-        echo '<td class="case-titre">ÉQUIPEMENTS DE LEVAGE</td>';
+        echo '<td class="case-titre">' . e($titre_entete) . '</td>';
         echo '<td class="case-meta"><table>';
         echo '<tr><td><span class="lbl">Rapport N° :</span> ' . e($rapport_numero) . '</td></tr>';
         echo '<tr><td><span class="lbl">Date :</span> ' . \Carbon\Carbon::parse($inspection->date_inspection)->format('d/m/Y') . '</td></tr>';
@@ -138,7 +133,7 @@
     </tr>
 </table>
 
-<div class="pied-section">RAPPORT DE VÉRIFICATION ÉQUIPEMENT DE LEVAGE 1/3</div>
+<div class="pied-section">{{ mb_strtoupper($titre_entete) }} — 1/3</div>
 
 {{-- =================== PAGE 2 : IDENTIFICATION / RÉSULTATS / CONCLUSION =================== --}}
 <div class="page-break"></div>
@@ -221,7 +216,7 @@ prévention.</p>
     @endif
 </div>
 
-<div class="pied-section">RAPPORT DE VÉRIFICATION ÉQUIPEMENT DE LEVAGE 2/3</div>
+<div class="pied-section">{{ mb_strtoupper($titre_entete) }} — 2/3</div>
 
 {{-- =================== PAGE 3+ : DÉTAIL DES POINTS DE CONTRÔLE =================== --}}
 <div class="page-break"></div>
@@ -262,7 +257,7 @@ prévention.</p>
     </table>
 @endif
 
-<div class="pied-section">RAPPORT DE VÉRIFICATION ÉQUIPEMENT DE LEVAGE 3/3</div>
+<div class="pied-section">{{ mb_strtoupper($titre_entete) }} — 3/3</div>
 
 </body>
 </html>

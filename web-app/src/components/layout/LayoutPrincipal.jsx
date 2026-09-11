@@ -15,6 +15,7 @@ const MENU = [
 
 const SOUS_MENU_PARAMETRES = [
   { to: '/parametres/sites', label: 'Gestion des sites' },
+  { to: '/parametres/familles', label: 'Gestion des familles' },
   { to: '/parametres/utilisateurs', label: 'Gestion des utilisateurs' },
 ]
 
@@ -28,6 +29,7 @@ const TITRES = {
   '/statistiques': 'Statistiques',
   '/parametres/sites': 'Gestion des sites',
   '/parametres/utilisateurs': 'Gestion des utilisateurs',
+  '/parametres/familles': 'Gestion des familles',
 }
 
 export default function LayoutPrincipal() {

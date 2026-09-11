@@ -10,14 +10,6 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Assemble les données de l'inspection au format attendu par la vue
  * resources/views/rapports/inspection.blade.php et génère le PDF final.
- *
- * Mise en page calquée sur le modèle de rapport fourni (APAVE Madagascar —
- * "RAPPORT DE VERIFICATION EQUIPEMENT MECANIQUE") : lettre d'accompagnement
- * avec photo, fiche d'identification + conclusion + observations
- * numérotées, puis détail des points de contrôle par section.
- *
- * Nécessite le package barryvdh/laravel-dompdf :
- *   composer require barryvdh/laravel-dompdf
  */
 class RapportPdfService
 {
@@ -25,7 +17,7 @@ class RapportPdfService
     {
         $inspection->load([
             'equipement.site.client',
-            'equipement.typeEquipement',
+            'equipement.typeEquipement.famille',
             'inspecteur',
             'reponses.pointControle.section',
             'anomalies',
@@ -40,8 +32,6 @@ class RapportPdfService
             'action' => $anomalie->action_recommandee,
         ]);
 
-        // Point de contrôle -> n° d'observation, pour afficher "Voir observation n°X"
-        // dans le détail (comme dans le modèle) quand une anomalie y est liée.
         $numeroObservationParReponse = [];
         foreach ($inspection->anomalies as $i => $anomalie) {
             if ($anomalie->reponse_controle_id) {
@@ -58,6 +48,12 @@ class RapportPdfService
             'observations' => $observations,
             'photo_generale_base64' => $this->photoGeneraleEnBase64($inspection),
             'registre_vise' => $this->registreVise($inspection),
+            // Titre d'en-tête propre à la famille de l'équipement (géré
+            // depuis "Paramètres > Gestion des familles") -> jamais codé en
+            // dur, s'applique automatiquement à toute nouvelle famille.
+            'titre_entete' => $inspection->equipement->typeEquipement->famille->titre_rapport
+                ?: $inspection->equipement->typeEquipement->famille->libelle
+                ?: 'ÉQUIPEMENTS DE LEVAGE',
         ])->setPaper('a4');
 
         $chemin = "rapports/inspection-{$inspection->id}-{$numeroRapport}.pdf";
@@ -82,13 +78,6 @@ class RapportPdfService
         );
     }
 
-    /**
-     * Regroupe les réponses par section (dans l'ordre du formulaire) et
-     * calcule un "constat" textuel pour chaque point — le commentaire de
-     * l'inspecteur s'il y en a un, sinon le libellé du statut, complété
-     * d'un renvoi "Voir observation n°X" quand une anomalie y est liée
-     * (reprend le style du modèle papier).
-     */
     private function grouperParSection(Inspection $inspection, array $numeroObservationParReponse): array
     {
         $labelsStatut = [
@@ -126,13 +115,8 @@ class RapportPdfService
         return $groupes;
     }
 
-    /** Convertit la "Photo générale" (photo obligatoire, jamais une autre) en data URI pour l'intégrer au PDF. */
     private function photoGeneraleEnBase64(Inspection $inspection): ?string
     {
-        // ⚠️ Ne JAMAIS retomber sur "une photo au hasard" en l'absence de
-        // correspondance exacte : mieux vaut ne pas illustrer la lettre que
-        // d'y afficher une photo sans rapport (ex: une photo de test liée à
-        // un tout autre point de contrôle).
         $photo = $inspection->photos->first(
             fn ($p) => $p->photographiable_type === 'photo_obligatoire'
                 && str_contains(mb_strtolower($p->libelle ?? ''), 'générale')
@@ -148,7 +132,6 @@ class RapportPdfService
         return 'data:' . $mime . ';base64,' . base64_encode($contenu);
     }
 
-    /** true/false si le document "Registre de sécurité" a été explicitement marqué présent/absent, sinon null (non renseigné). */
     private function registreVise(Inspection $inspection): ?bool
     {
         $document = $inspection->documents->first(

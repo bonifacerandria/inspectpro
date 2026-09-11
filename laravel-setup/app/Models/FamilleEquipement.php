@@ -10,7 +10,7 @@ class FamilleEquipement extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['code', 'libelle', 'ordre'];
+    protected $fillable = ['code', 'libelle', 'titre_rapport', 'ordre'];
 
     public function typesEquipement()
     {

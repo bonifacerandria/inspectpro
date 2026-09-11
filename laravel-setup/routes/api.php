@@ -47,7 +47,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class)->except(['show']);
 
     // --- Configuration du moteur d'inspection (admin) ---
-    Route::get('/familles-equipement', [FamilleEquipementController::class, 'index']);
+    Route::apiResource('familles-equipement', FamilleEquipementController::class)
+        ->parameters(['familles-equipement' => 'familleEquipement']);
     Route::apiResource('types-equipement', TypeEquipementController::class)
         ->parameters(['types-equipement' => 'typeEquipement']);
     // ⚠️ ->parameters(...) est indispensable ici : sans lui, Laravel déduit le nom
