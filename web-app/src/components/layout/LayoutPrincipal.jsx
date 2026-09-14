@@ -30,6 +30,7 @@ const TITRES = {
   '/parametres/sites': 'Gestion des sites',
   '/parametres/utilisateurs': 'Gestion des utilisateurs',
   '/parametres/familles': 'Gestion des familles',
+  '/profil': 'Mon profil',
 }
 
 export default function LayoutPrincipal() {
@@ -110,11 +111,17 @@ export default function LayoutPrincipal() {
         </nav>
 
         <div style={styles.userBox}>
-          <div style={styles.avatar}>{initiales}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={styles.userName}>{user?.nom}</div>
-            <div style={styles.userRole}>{user?.role === 'admin' ? 'Administrateur' : 'Inspecteur'}</div>
-          </div>
+          <button
+            onClick={() => navigate('/profil')}
+            title="Mon profil"
+            style={styles.userBoxClickable}
+          >
+            <div style={styles.avatar}>{initiales}</div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+              <div style={styles.userName}>{user?.nom}</div>
+              <div style={styles.userRole}>{user?.role === 'admin' ? 'Administrateur' : 'Inspecteur'}</div>
+            </div>
+          </button>
           <button onClick={handleLogout} title="Se déconnecter" style={styles.logoutBtn}>⏻</button>
         </div>
       </aside>
@@ -152,6 +159,10 @@ const styles = {
   userBox: {
     display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 20px',
     borderTop: '1px solid rgba(255,255,255,0.08)',
+  },
+  userBoxClickable: {
+    display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0,
+    border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, textAlign: 'left',
   },
   avatar: {
     width: 34, height: 34, borderRadius: '50%', background: theme.colors.navy500,

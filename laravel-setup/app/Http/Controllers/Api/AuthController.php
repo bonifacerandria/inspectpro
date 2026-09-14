@@ -74,4 +74,31 @@ class AuthController extends Controller
             'role' => $user->role,
         ]);
     }
+
+    /**
+     * PATCH /api/me/mot-de-passe
+     * Changement de son PROPRE mot de passe (admin ou inspecteur) — exige
+     * le mot de passe actuel. Différent de UserController::update(), qui
+     * permet à un admin de changer le mot de passe d'un AUTRE compte sans
+     * connaître l'ancien (cas d'usage distinct, volontairement séparé).
+     */
+    public function changerMotDePasse(Request $request): JsonResponse
+    {
+        $donnees = $request->validate([
+            'mot_de_passe_actuel' => 'required|string',
+            'nouveau_mot_de_passe' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($donnees['mot_de_passe_actuel'], $user->password)) {
+            throw ValidationException::withMessages([
+                'mot_de_passe_actuel' => ['Mot de passe actuel incorrect.'],
+            ]);
+        }
+
+        $user->update(['password' => Hash::make($donnees['nouveau_mot_de_passe'])]);
+
+        return response()->json(['message' => 'Mot de passe modifié avec succès.']);
+    }
 }

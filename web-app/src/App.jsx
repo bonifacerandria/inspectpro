@@ -16,6 +16,7 @@ import InspectionDetail from './pages/InspectionDetail'
 import Rapports from './pages/Rapports'
 import Statistiques from './pages/Statistiques'
 import FamillesEquipement from './pages/FamillesEquipement'
+import Profil from './pages/Profil'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/inspections/:inspectionId" element={<InspectionDetail />} />
               <Route path="/rapports" element={<Rapports />} />
               <Route path="/statistiques" element={<Statistiques />} />
+              <Route path="/profil" element={<Profil />} />
 
               {/* Paramètres */}
               <Route path="/parametres/sites" element={<Sites />} />

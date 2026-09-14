@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::patch('/me/mot-de-passe', [AuthController::class, 'changerMotDePasse']);
 
     // --- Référentiel client / site / équipement ---
     Route::apiResource('clients', ClientController::class);
