@@ -114,6 +114,7 @@ const styles = {
   brandList: {
     listStyle: 'none', padding: 0, marginTop: '32px',
     display: 'flex', flexDirection: 'column', gap: '12px',
+    color: theme.colors.textOnDark, fontSize: '14px', fontWeight: 500,
   },
   formPanel: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',

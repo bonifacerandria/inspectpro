@@ -8,7 +8,7 @@ const MENU = [
   { to: '/inspections', label: 'Inspections', icon: '🔍' },
   { to: '/rapports', label: 'Rapports', icon: '📄' },
   { to: '/clients', label: 'Clients', icon: '🏢' },
-  { to: '/equipements', label: 'Équipements', icon: '⚙️' },
+  { to: '/equipements', label: 'Équipements', icon: '🏗️' },
   { to: '/types-equipement', label: "Types d'équipement", icon: '🧩' },
   { to: '/statistiques', label: 'Statistiques', icon: '📊' },
 ]
