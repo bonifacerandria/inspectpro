@@ -22,6 +22,7 @@ class RapportPdfService
             'reponses.pointControle.section',
             'anomalies',
             'essais',
+            'signatures',
             'documents',
             'photos',
         ]);
@@ -48,6 +49,7 @@ class RapportPdfService
             'observations' => $observations,
             'photo_generale_base64' => $this->photoGeneraleEnBase64($inspection),
             'registre_vise' => $this->registreVise($inspection),
+            'signatures_base64' => $this->signaturesEnBase64($inspection),
             // Titre d'en-tête propre à la famille de l'équipement (géré
             // depuis "Paramètres > Gestion des familles") -> jamais codé en
             // dur, s'applique automatiquement à toute nouvelle famille.
@@ -139,5 +141,18 @@ class RapportPdfService
         );
 
         return $document?->present;
+    }
+    private function signaturesEnBase64(Inspection $inspection): array
+    {
+    $resultat = [];
+    foreach ($inspection->signatures as $s) {
+        if (Storage::disk('public')->exists($s->chemin_fichier)) {
+            $resultat[$s->type_signataire] = [
+                'nom' => $s->nom,
+                'image' => 'data:image/png;base64,' . base64_encode(Storage::disk('public')->get($s->chemin_fichier)),
+            ];
+        }
+    }
+    return $resultat;
     }
 }

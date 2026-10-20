@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\{
     AnomalieController,
     PhotoController,
     RapportController,
+    SignatureController,
     StatistiqueController,
     UserController,
 };
@@ -85,6 +86,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rapports', [RapportController::class, 'index']);
     Route::post('/inspections/{inspection}/rapport', [RapportController::class, 'generer']);
     Route::get('/rapports/{rapport}/telecharger', [RapportController::class, 'telecharger'])->name('rapports.telecharger');
+
+    Route::get('/inspections/{inspection}/signatures', [SignatureController::class, 'index']);
+    Route::post('/inspections/{inspection}/signatures', [SignatureController::class, 'store']);
 
     // --- Statistiques (dashboard admin) ---
     Route::get('/statistiques', [StatistiqueController::class, 'index']);

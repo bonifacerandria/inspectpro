@@ -21,7 +21,16 @@
 
         .sous-titre-page { text-align: center; font-weight: bold; font-size: 10.5px; margin: 6px 0 14px; }
 
-        .blocs-adresses td { vertical-align: top; font-size: 9.5px; font-style: italic; font-weight: bold; text-align: center; width: 50%; line-height: 1.5; }
+        .blocs-adresses td {
+            vertical-align: top;
+            font-size: 9.5px;
+            font-style: italic;
+            font-weight: bold;
+            text-align: center;
+            width: 50%;
+            line-height: 1.5;
+        }
+
         .encadre-photo {
             width: 260px; height: 190px; border: 1.3px solid #000; margin: 14px auto;
             display: table; text-align: center;
@@ -29,39 +38,66 @@
         .encadre-photo-cellule { display: table-cell; vertical-align: middle; text-align: center; }
         .encadre-photo img { max-width: 250px; max-height: 180px; }
         .encadre-photo .placeholder { color: #999; font-size: 11px; letter-spacing: 1px; }
+
         .case-registre { margin: 14px 0; }
-        .case-registre .case { display: inline-block; width: 11px; height: 11px; border: 1px solid #000; text-align: center; line-height: 10px; font-size: 9px; margin: 0 4px 0 12px; }
+        .case-registre .case {
+            display: inline-block; width: 11px; height: 11px; border: 1px solid #000;
+            text-align: center; line-height: 10px; font-size: 9px; margin: 0 4px 0 12px;
+        }
         .case-registre .case:first-child { margin-left: 0; }
+
         .zone-signature { width: 100%; margin-top: 24px; }
         .zone-signature td { width: 50%; vertical-align: top; font-size: 10px; }
-        .zone-signature .titre-signature { font-weight: bold; text-decoration: underline; margin-bottom: 26px; display: block; }
+        .zone-signature .titre-signature {
+            font-weight: bold; text-decoration: underline; margin-bottom: 26px; display: block;
+        }
+        .zone-signature .signature-image {
+            max-height: 50px;
+            max-width: 160px;
+            width: auto;
+            height: auto;
+        }
+        .zone-signature .signature-client-nom {
+            font-size: 9px;
+        }
 
         .grille-identif { margin-bottom: 12px; border: 1.3px solid #000; }
         .grille-identif td { border: 1.3px solid #000; padding: 5px 8px; font-size: 9.5px; }
         .grille-identif .label { font-weight: bold; width: 24%; background: #f2f2f2; }
-        .titre-section { font-weight: bold; font-size: 10.5px; margin: 15px 0 6px; text-transform: uppercase; border-bottom: 1.3px solid #000; padding-bottom: 2px; }
+
+        .titre-section {
+            font-weight: bold; font-size: 10.5px; margin: 15px 0 6px;
+            text-transform: uppercase; border-bottom: 1.3px solid #000; padding-bottom: 2px;
+        }
+
         .resultat-box {
-            border: 1.6px solid #000; padding: 9px; text-align: center; font-weight: bold; font-size: 12px;
-            margin: 8px 0; background: #f7f7f7;
+            border: 1.6px solid #000; padding: 9px; text-align: center; font-weight: bold;
+            font-size: 12px; margin: 8px 0; background: #f7f7f7;
         }
         .resultat-box.inapte { background: #fdecec; }
+
         .observations ol { margin: 0; padding-left: 18px; }
         .observations li { margin-bottom: 5px; }
         .observations .action { font-style: italic; color: #444; font-size: 9px; }
 
         .table-controle { margin-bottom: 14px; border: 1.3px solid #000; }
-        .table-controle th, .table-controle td { border: 1px solid #000; padding: 4px 8px; font-size: 9px; text-align: left; }
+        .table-controle th, .table-controle td {
+            border: 1px solid #000; padding: 4px 8px; font-size: 9px; text-align: left;
+        }
         .table-controle th { background: #eee; font-weight: bold; }
         .table-controle .col-point { width: 45%; }
 
-        .pied-section { text-align: center; font-weight: bold; font-size: 9px; margin-top: 22px; letter-spacing: 0.3px; }
+        .pied-section {
+            text-align: center; font-weight: bold; font-size: 9px;
+            margin-top: 22px; letter-spacing: 0.3px;
+        }
     </style>
 </head>
 <body>
 
 @php
-    // Titre d'en-tête propre à la famille de l'équipement (géré depuis
-    // "Paramètres > Gestion des familles") -> jamais codé en dur.
+    // Titre d'en-tête propre à la famille de l'équipement
+    // (géré depuis "Paramètres > Gestion des familles").
     $entete = function () use ($rapport_numero, $inspection, $titre_entete) {
         echo '<table class="entete"><tr>';
         echo '<td class="case-logo">LOGO</td>';
@@ -75,6 +111,7 @@
 @endphp
 
 {{-- =================== PAGE 1 : LETTRE D'ACCOMPAGNEMENT =================== --}}
+
 {{ $entete() }}
 
 <table class="blocs-adresses">
@@ -122,62 +159,112 @@
 
 <table class="zone-signature">
     <tr>
+        {{-- Colonne gauche : adresse et signature du client --}}
         <td>
             <span class="titre-signature">Adresse de l'installation visitée :</span>
+
             {{ $inspection->equipement->localisation ?? $inspection->equipement->site->nom }}
+
+            @if(isset($signatures_base64['client']))
+                <br>
+                <span class="signature-client-nom">
+                    Pour le client : {{ $signatures_base64['client']['nom'] }}
+                </span>
+                <br>
+                <img
+                    src="{{ $signatures_base64['client']['image'] }}"
+                    class="signature-image"
+                    alt="Signature du client"
+                >
+            @endif
         </td>
+
+        {{-- Colonne droite : nom et signature de l'inspecteur --}}
         <td>
             <span class="titre-signature">Inspecteurs levage</span>
+
             {{ $inspection->inspecteur->nom }}
+
+            @if(isset($signatures_base64['inspecteur']))
+                <br>
+                <img
+                    src="{{ $signatures_base64['inspecteur']['image'] }}"
+                    class="signature-image"
+                    alt="Signature de l'inspecteur"
+                >
+            @endif
         </td>
     </tr>
 </table>
 
 <div class="pied-section">{{ mb_strtoupper($titre_entete) }} — 1/3</div>
 
+
 {{-- =================== PAGE 2 : IDENTIFICATION / RÉSULTATS / CONCLUSION =================== --}}
+
 <div class="page-break"></div>
 
 {{ $entete() }}
-<div class="sous-titre-page">RAPPORT DE VÉRIFICATION — {{ mb_strtoupper($inspection->equipement->typeEquipement->libelle) }}</div>
+
+<div class="sous-titre-page">
+    RAPPORT DE VÉRIFICATION — {{ mb_strtoupper($inspection->equipement->typeEquipement->libelle) }}
+</div>
 
 <table class="grille-identif">
     <tr>
-        <td class="label">Date de vérification</td><td>{{ \Carbon\Carbon::parse($inspection->date_inspection)->format('d/m/Y') }}</td>
-        <td class="label">N° rapport</td><td>{{ $rapport_numero }}</td>
+        <td class="label">Date de vérification</td>
+        <td>{{ \Carbon\Carbon::parse($inspection->date_inspection)->format('d/m/Y') }}</td>
+        <td class="label">N° rapport</td>
+        <td>{{ $rapport_numero }}</td>
     </tr>
     <tr>
-        <td class="label">Vérificateur</td><td>{{ $inspection->inspecteur->nom }}</td>
-        <td class="label">Client</td><td>{{ $inspection->equipement->site->client->nom }}</td>
+        <td class="label">Vérificateur</td>
+        <td>{{ $inspection->inspecteur->nom }}</td>
+        <td class="label">Client</td>
+        <td>{{ $inspection->equipement->site->client->nom }}</td>
     </tr>
 </table>
 
 <div class="titre-section">Appareil ou équipement examiné</div>
+
 <table class="grille-identif">
     <tr>
-        <td class="label">Désignation</td><td>{{ $inspection->equipement->typeEquipement->libelle }}</td>
-        <td class="label">Constructeur</td><td>{{ $inspection->equipement->constructeur ?? '—' }}</td>
+        <td class="label">Désignation</td>
+        <td>{{ $inspection->equipement->typeEquipement->libelle }}</td>
+        <td class="label">Constructeur</td>
+        <td>{{ $inspection->equipement->constructeur ?? '—' }}</td>
     </tr>
     <tr>
-        <td class="label">Marque</td><td>{{ $inspection->equipement->marque ?? '—' }}</td>
-        <td class="label">Modèle</td><td>{{ $inspection->equipement->modele ?? '—' }}</td>
+        <td class="label">Marque</td>
+        <td>{{ $inspection->equipement->marque ?? '—' }}</td>
+        <td class="label">Modèle</td>
+        <td>{{ $inspection->equipement->modele ?? '—' }}</td>
     </tr>
     <tr>
-        <td class="label">N° d'identification</td><td>{{ $inspection->equipement->numero_serie ?? '—' }}</td>
-        <td class="label">N° équipement</td><td>{{ $inspection->equipement->numero_equipement ?? '—' }}</td>
+        <td class="label">N° d'identification</td>
+        <td>{{ $inspection->equipement->numero_serie ?? '—' }}</td>
+        <td class="label">N° équipement</td>
+        <td>{{ $inspection->equipement->numero_equipement ?? '—' }}</td>
     </tr>
     <tr>
-        <td class="label">Année</td><td>{{ $inspection->equipement->annee_fabrication ?? '—' }}</td>
-        <td class="label">CMU</td><td>{{ $inspection->equipement->cmu_tonnes ? $inspection->equipement->cmu_tonnes . ' t' : '—' }}</td>
+        <td class="label">Année</td>
+        <td>{{ $inspection->equipement->annee_fabrication ?? '—' }}</td>
+        <td class="label">CMU</td>
+        <td>
+            {{ $inspection->equipement->cmu_tonnes ? $inspection->equipement->cmu_tonnes . ' t' : '—' }}
+        </td>
     </tr>
+
     @php $suppl = $inspection->equipement->champs_supplementaires ?? []; @endphp
+
     @if(!empty($suppl))
         <tr>
             <td class="label">Caractéristiques complémentaires</td>
             <td colspan="3">
                 @foreach($suppl as $cle => $valeur)
                     @if($valeur)
-                        <strong>{{ ucfirst(str_replace('_', ' ', $cle)) }} :</strong> {{ $valeur }}@if(!$loop->last) &nbsp;·&nbsp; @endif
+                        <strong>{{ ucfirst(str_replace('_', ' ', $cle)) }} :</strong>
+                        {{ $valeur }}@if(!$loop->last) &nbsp;·&nbsp; @endif
                     @endif
                 @endforeach
             </td>
@@ -186,19 +273,27 @@
 </table>
 
 <div class="titre-section">Contenu et conditions de la vérification</div>
-<p>Examen de l'état de conservation avec essais de fonctionnement réalisés. La mission ne comprend pas l'examen
-de l'état de conformité aux règles de conception, ni les mesures d'organisation et les règles générales de
-prévention.</p>
+
+<p>
+    Examen de l'état de conservation avec essais de fonctionnement réalisés.
+    La mission ne comprend pas l'examen de l'état de conformité aux règles de conception,
+    ni les mesures d'organisation et les règles générales de prévention.
+</p>
 
 <div class="titre-section">Résultat de la vérification</div>
+
 <div class="resultat-box {{ $inspection->nb_dangers_immediats > 0 || $inspection->nb_defauts_majeurs > 0 ? 'inapte' : '' }}">
-    {{ $inspection->nb_dangers_immediats > 0 || $inspection->nb_defauts_majeurs > 0 ? "INAPTE AU SERVICE EN L'ÉTAT" : 'APTE AU SERVICE' }}
+    {{ $inspection->nb_dangers_immediats > 0 || $inspection->nb_defauts_majeurs > 0
+        ? "INAPTE AU SERVICE EN L'ÉTAT"
+        : 'APTE AU SERVICE' }}
 </div>
 
 <div class="titre-section">Conclusion</div>
+
 <p>{{ $inspection->conclusion ?? $inspection->avis_propose }}</p>
 
 <div class="titre-section">Observations</div>
+
 <div class="observations">
     @if($observations->isEmpty())
         <p>Néant.</p>
@@ -207,8 +302,11 @@ prévention.</p>
             @foreach($observations as $obs)
                 <li>
                     {{ $obs['texte'] }}
+
                     @if($obs['action'])
-                        <div class="action">Action recommandée : {{ $obs['action'] }}</div>
+                        <div class="action">
+                            Action recommandée : {{ $obs['action'] }}
+                        </div>
                     @endif
                 </li>
             @endforeach
@@ -218,17 +316,25 @@ prévention.</p>
 
 <div class="pied-section">{{ mb_strtoupper($titre_entete) }} — 2/3</div>
 
+
 {{-- =================== PAGE 3+ : DÉTAIL DES POINTS DE CONTRÔLE =================== --}}
+
 <div class="page-break"></div>
 
 {{ $entete() }}
+
 <div class="sous-titre-page">DÉTAIL DES POINTS DE CONTRÔLE</div>
 
 @foreach($sections as $section)
     <table class="table-controle">
         <thead>
-            <tr><th colspan="2">{{ mb_strtoupper($section['libelle']) }}</th></tr>
-            <tr><th class="col-point">Point de contrôle</th><th>Constat</th></tr>
+            <tr>
+                <th colspan="2">{{ mb_strtoupper($section['libelle']) }}</th>
+            </tr>
+            <tr>
+                <th class="col-point">Point de contrôle</th>
+                <th>Constat</th>
+            </tr>
         </thead>
         <tbody>
             @foreach($section['reponses'] as $r)
@@ -243,8 +349,15 @@ prévention.</p>
 
 @if($inspection->essais->isNotEmpty())
     <div class="titre-section">Essais réalisés</div>
+
     <table class="table-controle">
-        <thead><tr><th>Essai</th><th>Charge d'essai</th><th>Résultat</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Essai</th>
+                <th>Charge d'essai</th>
+                <th>Résultat</th>
+            </tr>
+        </thead>
         <tbody>
             @foreach($inspection->essais as $essai)
                 <tr>
